@@ -130,24 +130,10 @@ class DynamoDBSessionStore(SessionStore):
             The session ID
 
         """
-        # Generate a secure random UUID for the session
-        session_id = str(uuid.uuid4())
+        self.table.put_item(Item=session_data)
+        logger.info(f'Created session {session_data["session_id"]}')
 
-        # Set session expiry to 24 hours from now
-        expires_at = int(time.time()) + (24 * 60 * 60)
-
-        # Store session in DynamoDB
-        item = {
-            'session_id': session_id,
-            'expires_at': expires_at,
-            'created_at': int(time.time()),
-            'data': session_data or {},
-        }
-
-        self.table.put_item(Item=item)
-        logger.info(f'Created session {session_id}')
-
-        return session_id
+        return session_data["session_id"]
 
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Get session data.

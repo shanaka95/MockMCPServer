@@ -96,11 +96,19 @@ Resources:
         McpAPI:
           Type: Api
           Properties:
-            Path: /mcp
+            Path: /{proxy+}
             Method: ANY
             RestApiId: !Ref McpApi
-            Auth:
-              Authorizer: TokenAuthorizer
+            # Auth:
+            #   Authorizer: TokenAuthorizer
+        McpAPIRoot:
+          Type: Api
+          Properties:
+            Path: /
+            Method: ANY
+            RestApiId: !Ref McpApi
+            # Auth:
+            #   Authorizer: TokenAuthorizer
 
   # SSL Certificate for REGIONAL API Gateway
   ApiCertificate:
@@ -158,7 +166,7 @@ Outputs:
     Value: !Sub "https://${McpApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/mcp"
   McpCustomDomainApi:
     Description: "Custom domain URL for MCP server"
-    Value: !Sub "https://${DomainName}/mcp"
+    Value: !Sub "https://${DomainName}"
   McpSessionsTableName:
     Description: "Name of the DynamoDB table for MCP sessions"
     Value: !Ref McpSessionsTable
