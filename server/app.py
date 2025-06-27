@@ -1,4 +1,4 @@
-from awslabs.mcp_lambda_handler import MCPLambdaHandler
+from mcp_server import MCPLambdaHandler
 from datetime import datetime, UTC
 import random
 import boto3
