@@ -1,0 +1,167 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: MCP-compliant server using HTTP in Lambda
+
+Parameters:
+  McpAuthToken:
+    Type: String
+    NoEcho: true
+    Description: "The authentication token for MCP"
+  DomainName:
+    Type: String
+    Default: "app.mockmcp.com"
+    Description: "Custom domain name for the MCP API"
+  HostedZoneId:
+    Type: String
+    Description: "The Route53 Hosted Zone ID for mockmcp.com (you can find this in Route53 console)"
+
+Globals:
+  Function:
+    Timeout: 60
+    Runtime: python3.12
+    Architectures: [x86_64]
+
+Resources:
+  McpApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Auth:
+        Authorizers:
+          TokenAuthorizer:
+            FunctionArn: !GetAtt McpAuthorizerFunction.Arn
+            FunctionPayloadType: TOKEN
+            Identity:
+              ReauthorizeEvery: 300
+              Header: Authorization
+
+  McpAuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.lambda_handler
+      CodeUri: authorizer/
+      Environment:
+        Variables:
+          MCP_AUTH_TOKEN: !Ref McpAuthToken
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: 'lambda:InvokeFunction'
+              Resource: '*'
+
+  McpSessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-mcp-sessions"
+      AttributeDefinitions:
+        - AttributeName: session_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: session_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+      Tags:
+        - Key: Purpose
+          Value: MCP Session Management
+
+  McpServerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.lambda_handler
+      CodeUri: server/
+      Environment:
+        Variables:
+          MCP_SESSION_TABLE: !Ref McpSessionsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:ListBuckets
+                - s3:ListAllMyBuckets
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - dynamodb:CreateTable
+                - dynamodb:DeleteItem
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DescribeTable
+              Resource: !GetAtt McpSessionsTable.Arn
+      Events:
+        McpAPI:
+          Type: Api
+          Properties:
+            Path: /mcp
+            Method: ANY
+            RestApiId: !Ref McpApi
+            Auth:
+              Authorizer: TokenAuthorizer
+
+  # SSL Certificate for REGIONAL API Gateway
+  ApiCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-api-certificate"
+
+  # Custom Domain for API Gateway (REGIONAL)
+  ApiDomainName:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: !Ref DomainName
+      RegionalCertificateArn: !Ref ApiCertificate
+      SecurityPolicy: TLS_1_2
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+    DependsOn:
+      - ApiCertificate
+
+  # Domain mapping to API Gateway stage
+  ApiBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      DomainName: !Ref ApiDomainName
+      RestApiId: !Ref McpApi
+      Stage: Prod
+    DependsOn:
+      - ApiDomainName
+      - McpApiProdStage
+
+  # Route53 record to point to API Gateway (REGIONAL)
+  ApiDNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ApiDomainName.RegionalDomainName
+        HostedZoneId: !GetAtt ApiDomainName.RegionalHostedZoneId
+    DependsOn:
+      - ApiDomainName
+
+Outputs:
+  MCPServerApi:
+    Description: "API Gateway endpoint URL for MCP server"
+    Value: !Sub "https://${McpApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/mcp"
+  McpCustomDomainApi:
+    Description: "Custom domain URL for MCP server"
+    Value: !Sub "https://${DomainName}/mcp"
+  McpSessionsTableName:
+    Description: "Name of the DynamoDB table for MCP sessions"
+    Value: !Ref McpSessionsTable
+  CertificateArn:
+    Description: "ARN of the SSL certificate"
+    Value: !Ref ApiCertificate
