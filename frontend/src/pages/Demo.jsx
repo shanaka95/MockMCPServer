@@ -153,51 +153,51 @@ function Demo() {
 
         {/* Usage Instructions */}
         <div className="grid md:grid-cols-3 gap-6 mb-12 fade-in">
-          <div className="feature-card p-6 rounded-xl">
+          <div className="feature-card p-6 rounded-xl flex flex-col h-full">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                 <span className="text-lg">1️⃣</span>
               </div>
               <h3 className="text-lg font-semibold text-neutral-800">Copy Configuration</h3>
             </div>
-            <p className="text-neutral-600 text-sm leading-relaxed mb-4">
+            <p className="text-neutral-600 text-sm leading-relaxed mb-4 flex-grow">
               Copy the server URL or complete configuration to your clipboard
             </p>
-            <div className="bg-neutral-50 rounded-lg p-3 text-xs">
+            <div className="bg-neutral-50 rounded-lg p-3 text-xs mt-auto">
               <code className="text-neutral-700">
                 Click "Copy URL" or "Copy Config" above
               </code>
             </div>
           </div>
 
-          <div className="feature-card p-6 rounded-xl">
+          <div className="feature-card p-6 rounded-xl flex flex-col h-full">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
                 <span className="text-lg">2️⃣</span>
               </div>
               <h3 className="text-lg font-semibold text-neutral-800">Add to MCP Client</h3>
             </div>
-            <p className="text-neutral-600 text-sm leading-relaxed mb-4">
+            <p className="text-neutral-600 text-sm leading-relaxed mb-4 flex-grow">
               {demoServer.note}
             </p>
-            <div className="bg-neutral-50 rounded-lg p-3 text-xs">
+            <div className="bg-neutral-50 rounded-lg p-3 text-xs mt-auto">
               <code className="text-neutral-700">
                 Paste URL in your MCP client configuration
               </code>
             </div>
           </div>
 
-          <div className="feature-card p-6 rounded-xl">
+          <div className="feature-card p-6 rounded-xl flex flex-col h-full">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                 <span className="text-lg">3️⃣</span>
               </div>
               <h3 className="text-lg font-semibold text-neutral-800">Ask Your LLM</h3>
             </div>
-            <p className="text-neutral-600 text-sm leading-relaxed mb-4">
+            <p className="text-neutral-600 text-sm leading-relaxed mb-4 flex-grow">
               Ask your LLM about the status of mockmcp.com - it will call this server to get real-time information
             </p>
-            <div className="bg-neutral-50 rounded-lg p-3 text-xs">
+            <div className="bg-neutral-50 rounded-lg p-3 text-xs mt-auto">
               <code className="text-neutral-700">
                 "What's the status of mockmcp.com?"
               </code>
