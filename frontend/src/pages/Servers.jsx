@@ -64,14 +64,14 @@ function Servers() {
 
   const copyConfiguration = async (server) => {
     try {
-      const token = await getAccessToken()
+      // Use the M2M token from the server data instead of user's access token
       const config = JSON.stringify({
         mcpServers: {
           [server.name]: {
             type: "streamable-http",
             url: `https://app.mockmcp.com/server/${server.session_id}/mcp`,
             headers: {
-              Authorization: `Bearer ${token}`
+              Authorization: `Bearer ${server.m2m_token}`
             },
             note: "For Streamable HTTP connections, add this URL and Authorization header to your MCP Client"
           }
@@ -80,14 +80,14 @@ function Servers() {
       
       await copyToClipboard(config, server.session_id, 'config')
     } catch (error) {
-      console.error('Error getting access token for configuration:', error)
+      console.error('Error generating configuration:', error)
       // Fallback config without auth header
       const config = JSON.stringify({
         mcpServers: {
           [server.name]: {
             type: "streamable-http", 
             url: `https://app.mockmcp.com/server/${server.session_id}/mcp`,
-            note: "Warning: Unable to get current access token. You may need to add Authorization header manually."
+            note: "Warning: Unable to generate configuration with authentication header."
           }
         }
       }, null, 2)

@@ -33,13 +33,35 @@ def lambda_handler(event, context):
         if token.startswith('mcp_m2m_'):
             # Handle M2M token
             print("Processing M2M token")
-            validation_result = validate_m2m_token(token)
+            
+            # Extract session ID from method ARN for M2M tokens
+            # Method ARN format: arn:aws:execute-api:region:account:api-id/stage/METHOD/resource-path
+            # We need to extract session ID from resource path like: server/SESSION_ID/mcp
+            session_id = None
+            try:
+                # Parse the method ARN to get the resource path
+                arn_parts = method_arn.split('/')
+                # Look for the pattern: server/SESSION_ID/mcp
+                for i, part in enumerate(arn_parts):
+                    if part == 'server' and i + 2 < len(arn_parts) and arn_parts[i + 2] == 'mcp':
+                        session_id = arn_parts[i + 1]
+                        break
+                
+                if not session_id:
+                    print("Could not extract session ID from method ARN")
+                    raise Exception('Unauthorized')
+                    
+            except Exception as e:
+                print(f"Error extracting session ID from method ARN: {str(e)}")
+                raise Exception('Unauthorized')
+            
+            validation_result = validate_m2m_token(token, session_id)
             
             if not validation_result:
                 print("M2M token validation failed")
                 raise Exception('Unauthorized')
                 
-            user_id, session_id = validation_result
+            user_id = validation_result
             print(f"Successfully validated M2M token for session: {session_id}, user: {user_id}")
             
             return {
@@ -88,15 +110,16 @@ def lambda_handler(event, context):
         print(f"Authorization failed: {str(e)}")
         raise Exception('Unauthorized')
 
-def validate_m2m_token(token):
+def validate_m2m_token(token, session_id):
     """
     Validate M2M token against stored hash in DynamoDB
     
     Args:
         token: M2M token string
+        session_id: Session ID extracted from the request URL
         
     Returns:
-        tuple: (user_id, session_id) if valid, None otherwise
+        str: user_id if valid, None otherwise
     """
     try:
         # Get DynamoDB table name from environment variable
@@ -106,35 +129,37 @@ def validate_m2m_token(token):
         # Hash the provided token
         token_hash = hashlib.sha256(token.encode()).hexdigest()
         
-        # Search for session with matching token hash
-        # Note: This is a scan operation which is not ideal for large datasets
-        # For production, consider using a GSI on m2m_token_hash
-        response = table.scan(
-            FilterExpression='m2m_token_hash = :token_hash',
-            ExpressionAttributeValues={
-                ':token_hash': token_hash
-            }
+        # Get session directly by session_id (primary key)
+        response = table.get_item(
+            Key={'session_id': session_id}
         )
         
-        if not response['Items']:
-            print("No session found with matching M2M token hash")
+        if 'Item' not in response:
+            print(f"No session found with session_id: {session_id}")
             return None
         
-        if len(response['Items']) > 1:
-            print("Multiple sessions found with same M2M token hash - security issue!")
-            return None
-        
-        session = response['Items'][0]
+        session = response['Item']
         
         # Check if session is still active
         if session.get('status') != 'active':
-            print(f"Session {session.get('session_id')} is not active")
+            print(f"Session {session_id} is not active")
+            return None
+        
+        # Compare the token hash with the stored hash
+        stored_token_hash = session.get('m2m_token_hash')
+        if not stored_token_hash:
+            print(f"No M2M token hash found for session {session_id}")
+            return None
+        
+        if token_hash != stored_token_hash:
+            print(f"M2M token hash mismatch for session {session_id}")
             return None
         
         # For M2M tokens, we don't check expiration as they should be long-lived
         # But you could add additional checks here if needed
         
-        return session.get('user_id'), session.get('session_id')
+        print(f"M2M token validated successfully for session {session_id}")
+        return session.get('user_id')
         
     except Exception as e:
         print(f"M2M token validation error: {str(e)}")

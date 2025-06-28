@@ -44,6 +44,7 @@ class MCPServerListResponse(BaseModel):
     description: str
     tools: List[Dict[str, Any]]
     status: str
+    m2m_token: str  # Include M2M token in response
     created_at: int
     updated_at: int
     expires_at: int

@@ -46,12 +46,17 @@ Resources:
         Variables:
           MCP_AUTH_TOKEN: "1234567890"
           USER_POOL_ID: !Ref MockMcpUserPool
+          MCP_SESSION_TABLE: !Ref McpSessionsTable
       Policies:
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action: 'lambda:InvokeFunction'
               Resource: '*'
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt McpSessionsTable.Arn
 
   McpSessionsTable:
     Type: AWS::DynamoDB::Table
