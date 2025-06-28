@@ -5,6 +5,7 @@ import EmailConfirmation from './components/EmailConfirmation'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import SignUp from './pages/SignUp'
+import PasswordReset from './pages/PasswordReset'
 import Demo from './pages/Demo'
 import CreateServer from './pages/CreateServer'
 import Servers from './pages/Servers'
@@ -37,6 +38,7 @@ function App() {
             <Route path="/servers" element={<Servers />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/password-reset" element={<PasswordReset />} />
             <Route path="/confirm-email" element={<EmailConfirmation />} />
           </Routes>
         </Router>

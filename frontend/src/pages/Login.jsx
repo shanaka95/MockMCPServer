@@ -138,9 +138,14 @@ function Login() {
               </div>
               
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-2">
-                  Password
-                </label>
+                <div className="flex justify-between items-center mb-2">
+                  <label htmlFor="password" className="block text-sm font-medium text-neutral-700">
+                    Password
+                  </label>
+                  <Link to="/password-reset" className="text-sm text-blue-600 hover:text-blue-700">
+                    Forgot password?
+                  </Link>
+                </div>
                 <input 
                   type="password" 
                   id="password" 
@@ -152,8 +157,6 @@ function Login() {
                   required
                 />
               </div>
-              
-              {/* Removed remember me and forgot password - not implemented */}
               
               <button 
                 type="submit" 

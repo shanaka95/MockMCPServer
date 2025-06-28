@@ -8,7 +8,9 @@ import {
   fetchUserAttributes,
   confirmSignUp,
   resendSignUpCode,
-  fetchAuthSession
+  fetchAuthSession,
+  resetPassword,
+  confirmResetPassword
 } from 'aws-amplify/auth';
 import { amplifyConfig } from '../config/auth';
 
@@ -294,6 +296,77 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Initiate password reset for user
+   * @param {string} email - User email (used as username)
+   * @returns {Promise<Object>} Result object with success flag and additional data
+   */
+  const requestPasswordReset = async (email) => {
+    try {
+      setError(null);
+      
+      if (!email?.trim()) {
+        throw new Error('Email is required');
+      }
+      
+      const result = await resetPassword({
+        username: email.trim()
+      });
+      
+      return { 
+        success: true, 
+        nextStep: result.nextStep,
+        message: 'Password reset code sent to your email'
+      };
+    } catch (error) {
+      console.error('Password reset request error:', error);
+      const errorMessage = error.message || 'Failed to send password reset code. Please try again.';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  /**
+   * Confirm password reset with verification code and new password
+   * @param {string} email - User email (used as username)
+   * @param {string} confirmationCode - Verification code from email
+   * @param {string} newPassword - New password
+   * @returns {Promise<Object>} Result object with success flag and additional data
+   */
+  const confirmPasswordReset = async (email, confirmationCode, newPassword) => {
+    try {
+      setError(null);
+      
+      if (!email?.trim()) {
+        throw new Error('Email is required');
+      }
+      
+      if (!confirmationCode?.trim()) {
+        throw new Error('Confirmation code is required');
+      }
+      
+      if (!newPassword) {
+        throw new Error('New password is required');
+      }
+      
+      await confirmResetPassword({
+        username: email.trim(),
+        confirmationCode: confirmationCode.trim(),
+        newPassword: newPassword
+      });
+      
+      return { 
+        success: true,
+        message: 'Password reset successfully. You can now sign in with your new password.'
+      };
+    } catch (error) {
+      console.error('Password reset confirmation error:', error);
+      const errorMessage = error.message || 'Failed to reset password. Please try again.';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  };
+
   // Context value object
   const value = {
     // State
@@ -310,6 +383,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     checkAuthState,
     getAccessToken,
+    requestPasswordReset,
+    confirmPasswordReset,
   };
 
   return (
