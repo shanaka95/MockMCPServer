@@ -1,0 +1,7 @@
+/* All styles are now loaded via CDN Tailwind in index.html */
+/* This file is kept minimal to avoid conflicts */
+
+body {
+  margin: 0;
+  padding: 0;
+}

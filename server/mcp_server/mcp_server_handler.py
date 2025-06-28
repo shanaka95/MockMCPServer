@@ -47,91 +47,6 @@ class MCPServerHandler:
         # In-memory storage for MCPLambdaHandler instances
         self.active_handlers: Dict[str, MCPLambdaHandler] = {}
 
-    def get_handler(self, session_id: str) -> Optional[MCPLambdaHandler]:
-        """
-        Get a stored MCPLambdaHandler instance by session_id
-        
-        Args:
-            session_id: The session ID to look up
-            
-        Returns:
-            MCPLambdaHandler instance if found, None otherwise
-        """
-        return self.active_handlers.get(session_id)
-
-    def get_all_handlers(self) -> Dict[str, MCPLambdaHandler]:
-        """
-        Get all stored MCPLambdaHandler instances
-        
-        Returns:
-            Dictionary mapping session_id to MCPLambdaHandler instances
-        """
-        return self.active_handlers.copy()
-
-    def remove_handler(self, session_id: str) -> bool:
-        """
-        Remove a stored MCPLambdaHandler instance
-        
-        Args:
-            session_id: The session ID to remove
-            
-        Returns:
-            True if handler was found and removed, False otherwise
-        """
-        if session_id in self.active_handlers:
-            del self.active_handlers[session_id]
-            return True
-        return False
-
-    def get_active_session_ids(self) -> List[str]:
-        """
-        Get list of all active session IDs
-        
-        Returns:
-            List of session IDs that have active handlers
-        """
-        return list(self.active_handlers.keys())
-
-    def get_handler_info(self, session_id: str) -> Optional[Dict[str, Any]]:
-        """
-        Get information about a stored handler
-        
-        Args:
-            session_id: The session ID to look up
-            
-        Returns:
-            Dictionary with handler information if found, None otherwise
-        """
-        handler = self.active_handlers.get(session_id)
-        if handler:
-            return {
-                'session_id': session_id,
-                'name': handler.name,
-                'version': handler.version,
-                'tools_count': len(handler.tools),
-                'tool_names': list(handler.tools.keys())
-            }
-        return None
-
-    def get_handlers_summary(self) -> Dict[str, Any]:
-        """
-        Get summary information about all stored handlers
-        
-        Returns:
-            Dictionary with summary statistics and handler information
-        """
-        handlers_info = []
-        for session_id in self.active_handlers:
-            info = self.get_handler_info(session_id)
-            if info:
-                handlers_info.append(info)
-        
-        return {
-            'total_handlers': len(self.active_handlers),
-            'active_sessions': list(self.active_handlers.keys()),
-            'handlers': handlers_info
-        }
-
     def _create_tool_functions(self, tools: List[ToolDefinition]) -> List[Callable]:
         """
         Create callable functions from tool definitions
@@ -261,7 +176,8 @@ class MCPServerHandler:
                         'name': validated_request.name,
                         'description': validated_request.description,
                         'tools_count': len(validated_request.tools),
-                        'created_at': server_data['created_at']
+                        'created_at': server_data['created_at'],
+                        'url': f'https://app.mockmcp.com/server/{session_id}/mcp'
                     }
                 }),
                 'headers': {
