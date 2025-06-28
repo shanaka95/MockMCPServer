@@ -69,11 +69,10 @@ function SignUp() {
     const result = await register(formData.name, formData.email, formData.password)
     
     if (result.success) {
-      // Navigate to email confirmation page with email and username in state
+      // Navigate to email confirmation page with email
       navigate('/confirm-email', { 
         state: { 
-          email: formData.email,
-          username: result.username 
+          email: formData.email
         }
       })
     } else {
@@ -193,10 +192,7 @@ function SignUp() {
                   className="w-4 h-4 text-blue-600 border-neutral-300 rounded focus:ring-blue-500 mt-1" 
                 />
                 <span className="ml-3 text-sm text-neutral-600">
-                  I agree to the{' '}
-                  <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">Terms of Service</a>
-                  {' '}and{' '}
-                  <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">Privacy Policy</a>
+                  I agree to the Terms of Service and Privacy Policy
                 </span>
               </label>
             </div>
@@ -219,18 +215,7 @@ function SignUp() {
             </p>
           </div>
           
-          <div className="mt-6 pt-6 border-t border-neutral-200">
-            <div className="text-center">
-              <p className="text-xs text-neutral-500 mb-2">Trusted by developers at</p>
-              <div className="flex justify-center items-center gap-4 text-xs text-neutral-400">
-                <span>🚀 Startups</span>
-                <span>•</span>
-                <span>🏢 Enterprises</span>
-                <span>•</span>
-                <span>🎓 Universities</span>
-              </div>
-            </div>
-          </div>
+          {/* Removed marketing content for simplicity */}
         </div>
       </div>
     </main>

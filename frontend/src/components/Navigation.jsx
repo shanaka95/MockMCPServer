@@ -49,12 +49,7 @@ function Navigation() {
           >
             Demo
           </Link>
-          <a href="#" className="text-neutral-600 hover:text-neutral-800 text-sm font-medium transition-colors">
-            Features
-          </a>
-          <a href="#" className="text-neutral-600 hover:text-neutral-800 text-sm font-medium transition-colors">
-            Documentation
-          </a>
+          {/* Removed non-functional links for simplicity */}
         </nav>
         
         <div className="flex items-center gap-3">

@@ -13,9 +13,8 @@ function EmailConfirmation() {
   const [success, setSuccess] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
 
-  // Get email and username from navigation state
+  // Get email from navigation state (email is used as username in our system)
   const email = location.state?.email || '';
-  const username = location.state?.username || '';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,9 +26,8 @@ function EmailConfirmation() {
     setLoading(true);
     setError('');
     
-    // Try confirmation with username first (since that's what was used for signup)
-    const confirmationIdentifier = username || email;
-    const result = await confirmRegistration(confirmationIdentifier, confirmationCode.trim());
+    // Use email for confirmation (email is our username)
+    const result = await confirmRegistration(email, confirmationCode.trim());
     
     if (result.success) {
       setSuccess('Email confirmed successfully! Redirecting to login...');
@@ -44,17 +42,16 @@ function EmailConfirmation() {
   };
 
   const handleResendCode = async () => {
-    if (!email && !username) {
-      setError('User information not found. Please try signing up again.');
+    if (!email) {
+      setError('Email not found. Please try signing up again.');
       return;
     }
 
     setResendLoading(true);
     setError('');
     
-    // Use username for resend if available, otherwise fall back to email
-    const resendIdentifier = username || email;
-    const result = await resendConfirmationCode(resendIdentifier);
+    // Use email for resend (email is our username)
+    const result = await resendConfirmationCode(email);
     
     if (result.success) {
       setSuccess('Confirmation code sent! Please check your email.');
@@ -66,7 +63,7 @@ function EmailConfirmation() {
     setResendLoading(false);
   };
 
-  if (!email && !username) {
+  if (!email) {
     return (
       <div className="min-h-[calc(100vh-80px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full text-center">
@@ -80,7 +77,7 @@ function EmailConfirmation() {
               Invalid Access
             </h2>
             <p className="text-neutral-600 mb-6">
-              No user information found for confirmation. Please sign up again.
+              No email found for confirmation. Please sign up again.
             </p>
             <button
               onClick={() => navigate('/signup')}

@@ -187,10 +187,9 @@ Resources:
           RequireNumbers: true
           RequireSymbols: true
           TemporaryPasswordValidityDays: 7
-      # User Attributes
-      AliasAttributes:
+      # User Attributes - Email as username, no alias needed
+      UsernameAttributes:
         - email
-        - preferred_username
       AutoVerifiedAttributes:
         - email
       Schema:
@@ -331,3 +330,12 @@ Outputs:
   CertificateArn:
     Description: "ARN of the SSL certificate"
     Value: !Ref ApiCertificate
+  UserPoolId:
+    Description: "Cognito User Pool ID"
+    Value: !Ref MockMcpUserPool
+  UserPoolClientId:
+    Description: "Cognito User Pool Client ID"
+    Value: !Ref MockMcpUserPoolClient
+  UserPoolDomain:
+    Description: "Cognito User Pool Domain"
+    Value: !Sub "mockmcp-${AWS::AccountId}"

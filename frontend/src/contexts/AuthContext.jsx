@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Amplify } from '@aws-amplify/core';
+import { Amplify } from 'aws-amplify';
 import { 
   signUp, 
   signIn, 
@@ -7,7 +7,7 @@ import {
   getCurrentUser,
   confirmSignUp,
   resendSignUpCode
-} from '@aws-amplify/auth';
+} from 'aws-amplify/auth';
 import { amplifyConfig } from '../config/auth';
 
 // Configure Amplify
@@ -49,6 +49,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       setLoading(true);
+      
       const { isSignedIn, nextStep } = await signIn({
         username: email,
         password: password,
@@ -69,13 +70,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const generateRandomUsername = () => {
-    // Generate a random username with format: user_[timestamp]_[random]
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 8);
-    return `user_${timestamp}_${random}`;
-  };
-
   const register = async (name, email, password) => {
     try {
       setError(null);
@@ -86,11 +80,9 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Name is required');
       }
       
-      // Generate a random username since email alias is configured
-      const username = generateRandomUsername();
-      
+      // Use email as username for login consistency
       const { isSignUpComplete, userId, nextStep } = await signUp({
-        username: username,
+        username: email,
         password: password,
         options: {
           userAttributes: {
@@ -105,7 +97,7 @@ export const AuthProvider = ({ children }) => {
         isSignUpComplete, 
         userId, 
         nextStep,
-        username: username
+        username: email
       };
     } catch (error) {
       setError(error.message);
