@@ -14,7 +14,12 @@ function CreateServer() {
       {
         name: 'HelloWorld',
         description: 'Provides the server status of mockmcp.com',
-        output_text: 'Hi, mockmcp.com is online and running normally.',
+        output_text: JSON.stringify({
+          "status": "online",
+          "message": "Hi, mockmcp.com is online and running normally.",
+          "timestamp": new Date().toISOString(),
+          "server": "MockMCP"
+        }, null, 2),
         parameters: {
           name: {
             type: 'string',
@@ -54,6 +59,25 @@ function CreateServer() {
       ...formData,
       tools: updatedTools
     })
+  }
+
+  const prettifyJson = (jsonString) => {
+    try {
+      const parsed = JSON.parse(jsonString)
+      return JSON.stringify(parsed, null, 2)
+    } catch (error) {
+      return jsonString // Return original if not valid JSON
+    }
+  }
+
+  const handleOutputTextChange = (toolIndex, value, shouldPrettify = false) => {
+    let finalValue = value
+    
+    if (shouldPrettify) {
+      finalValue = prettifyJson(value)
+    }
+    
+    handleToolChange(toolIndex, 'output_text', finalValue)
   }
 
   const handleParameterChange = (toolIndex, paramName, field, value) => {
@@ -309,20 +333,6 @@ function CreateServer() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Output Text *
-                    </label>
-                    <textarea
-                      value={tool.output_text}
-                      onChange={(e) => handleToolChange(toolIndex, 'output_text', e.target.value)}
-                      placeholder="What will this tool return when called?"
-                      rows={2}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-
                   {/* Parameters */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -391,6 +401,70 @@ function CreateServer() {
                         </div>
                       </div>
                     ))}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-neutral-700">
+                        Output Text *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleOutputTextChange(toolIndex, tool.output_text, true)}
+                        className="btn-outline px-3 py-1 rounded text-xs font-medium flex items-center gap-1"
+                        title="Format as JSON"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        Prettify JSON
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <textarea
+                        value={tool.output_text}
+                        onChange={(e) => handleOutputTextChange(toolIndex, e.target.value)}
+                        onBlur={(e) => {
+                          // Auto-prettify JSON on blur if it's valid JSON but not formatted
+                          const value = e.target.value.trim()
+                          if (value && value.startsWith('{') || value.startsWith('[')) {
+                            try {
+                              const parsed = JSON.parse(value)
+                              const prettified = JSON.stringify(parsed, null, 2)
+                              if (prettified !== value) {
+                                handleOutputTextChange(toolIndex, prettified)
+                              }
+                            } catch {
+                              // Ignore if not valid JSON
+                            }
+                          }
+                        }}
+                        placeholder="What will this tool return when called? Can be plain text or JSON..."
+                        rows={4}
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                        required
+                      />
+                      {tool.output_text && (() => {
+                        try {
+                          JSON.parse(tool.output_text)
+                          return (
+                            <div className="absolute top-2 right-2">
+                              <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                                Valid JSON
+                              </span>
+                            </div>
+                          )
+                        } catch {
+                          return null
+                        }
+                      })()}
+                    </div>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      💡 Tip: Paste JSON here and click "Prettify JSON" to format it automatically
+                    </p>
                   </div>
                 </div>
               ))}

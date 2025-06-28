@@ -4,7 +4,6 @@ MCP Server Handler for managing server creation and lifecycle
 
 from typing import Dict, Any, List, Callable, Optional, Tuple
 import json
-import uuid
 import time
 import os
 import secrets
@@ -131,6 +130,18 @@ class MCPServerHandler:
         
         return tool_functions
     
+    def _generate_id(self, length: int = 12) -> str:
+        """
+        Generate a short, cryptographically secure random ID
+        
+        Args:
+            length: Length of the ID to generate (default: 12)
+            
+        Returns:
+            str: Short random ID
+        """
+        return secrets.token_urlsafe(length)[:length]
+    
     def _generate_m2m_token(self, session_id: str, user_id: str) -> str:
         """
         Generate a secure M2M token for MCP server access
@@ -156,7 +167,7 @@ class MCPServerHandler:
     def _new_server(self, request_data: Dict[str, Any], user_id: str, session_id: str = None) -> Tuple[Dict[str, Any], MCPLambdaHandler]:
        
         # Generate unique server ID
-        session_id = session_id if session_id else str(uuid.uuid4())
+        session_id = session_id if session_id else self._generate_id()
         
         # Generate M2M token for this server
         m2m_token = self._generate_m2m_token(session_id, user_id)
