@@ -1,5 +1,5 @@
 from mcp_server.mcp_server_handler import mcp_server_handler
-
+import json
 
 def router(event, context):
     """
@@ -16,13 +16,19 @@ def router(event, context):
     
     # Get first part of path
     path_parts = path.split('/')
+    print(path_parts)
     if len(path_parts) > 1:
-        first_part = path_parts[1]
-        last_part = path_parts[-1]
+        resource = path_parts[1] # server
+        session_id = path_parts[2] if len(path_parts) > 2 else None
+        protocol = path_parts[-1]
         
-        if first_part == 'server' and event.get('httpMethod') == 'POST':
+        if resource == 'server' and protocol != 'mcp' and event.get('httpMethod') == 'POST':
+            # Extract and validate request data using Pydantic
+            request_data = json.loads(event.get('body', '{}'))
             # Handle MCP server creation request
-            return mcp_server_handler.create_server(event, context)
+            return mcp_server_handler.create_server(request_data)
+        elif resource == 'server' and protocol == 'mcp':
+            return mcp_server_handler.load_server(session_id, event, context)
         
     
     # Default 404 response

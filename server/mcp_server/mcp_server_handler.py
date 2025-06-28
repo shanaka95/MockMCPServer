@@ -2,7 +2,7 @@
 MCP Server Handler for managing server creation and lifecycle
 """
 
-from typing import Dict, Any, List, Callable
+from typing import Dict, Any, List, Callable, Optional, Tuple
 import json
 import uuid
 import time
@@ -43,6 +43,94 @@ class MCPServerHandler:
         # Get DynamoDB table name from environment variable
         table_name = os.environ.get('MCP_SESSION_TABLE', 'mcp_sessions')
         self.session_store = DynamoDBSessionStore(table_name=table_name)
+        
+        # In-memory storage for MCPLambdaHandler instances
+        self.active_handlers: Dict[str, MCPLambdaHandler] = {}
+
+    def get_handler(self, session_id: str) -> Optional[MCPLambdaHandler]:
+        """
+        Get a stored MCPLambdaHandler instance by session_id
+        
+        Args:
+            session_id: The session ID to look up
+            
+        Returns:
+            MCPLambdaHandler instance if found, None otherwise
+        """
+        return self.active_handlers.get(session_id)
+
+    def get_all_handlers(self) -> Dict[str, MCPLambdaHandler]:
+        """
+        Get all stored MCPLambdaHandler instances
+        
+        Returns:
+            Dictionary mapping session_id to MCPLambdaHandler instances
+        """
+        return self.active_handlers.copy()
+
+    def remove_handler(self, session_id: str) -> bool:
+        """
+        Remove a stored MCPLambdaHandler instance
+        
+        Args:
+            session_id: The session ID to remove
+            
+        Returns:
+            True if handler was found and removed, False otherwise
+        """
+        if session_id in self.active_handlers:
+            del self.active_handlers[session_id]
+            return True
+        return False
+
+    def get_active_session_ids(self) -> List[str]:
+        """
+        Get list of all active session IDs
+        
+        Returns:
+            List of session IDs that have active handlers
+        """
+        return list(self.active_handlers.keys())
+
+    def get_handler_info(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get information about a stored handler
+        
+        Args:
+            session_id: The session ID to look up
+            
+        Returns:
+            Dictionary with handler information if found, None otherwise
+        """
+        handler = self.active_handlers.get(session_id)
+        if handler:
+            return {
+                'session_id': session_id,
+                'name': handler.name,
+                'version': handler.version,
+                'tools_count': len(handler.tools),
+                'tool_names': list(handler.tools.keys())
+            }
+        return None
+
+    def get_handlers_summary(self) -> Dict[str, Any]:
+        """
+        Get summary information about all stored handlers
+        
+        Returns:
+            Dictionary with summary statistics and handler information
+        """
+        handlers_info = []
+        for session_id in self.active_handlers:
+            info = self.get_handler_info(session_id)
+            if info:
+                handlers_info.append(info)
+        
+        return {
+            'total_handlers': len(self.active_handlers),
+            'active_sessions': list(self.active_handlers.keys()),
+            'handlers': handlers_info
+        }
 
     def _create_tool_functions(self, tools: List[ToolDefinition]) -> List[Callable]:
         """
@@ -98,8 +186,36 @@ class MCPServerHandler:
             tool_functions.append(create_tool_function(tool))
         
         return tool_functions
+    
+    def _new_server(self, request_data: Dict[str, Any], session_id: str = None) -> Tuple[Dict[str, Any], MCPLambdaHandler]:
+       
+        # Generate unique server ID
+        session_id = session_id if session_id else str(uuid.uuid4())
+        
+        # Create tool functions from validated request
+        tool_functions = self._create_tool_functions(request_data.tools)
+        
+        # Create MCPLambdaHandler instance with the tools
+        mcp_handler = MCPLambdaHandler(
+            name=request_data.name,
+            version="1.0.0",
+            tools=tool_functions
+        )
+        
+        # Prepare server data for storage
+        server_data = {
+            'session_id': session_id,
+            'name': request_data.name,
+            'description': request_data.description,
+            'tools': [tool.dict() for tool in request_data.tools],
+            'status': 'active',
+            'created_at': int(time.time()),
+            'updated_at': int(time.time())
+        }
 
-    def create_server(self, event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+        return server_data, mcp_handler
+
+    def create_server(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Handle MCP server creation request
         
@@ -111,9 +227,6 @@ class MCPServerHandler:
             Dict containing response with status code and body
         """
         try:
-            # Extract and validate request data using Pydantic
-            request_data = json.loads(event.get('body', '{}'))
-            
             # Validate using Pydantic model
             try:
                 validated_request = MCPServerRequest(**request_data)
@@ -129,73 +242,33 @@ class MCPServerHandler:
                     }
                 }
             
-            # Generate unique server ID
-            session_id = str(uuid.uuid4())
+            server_data, mcp_handler = self._new_server(validated_request)
+
+            session_id = server_data['session_id']
             
-            # Create tool functions from validated request
-            tool_functions = self._create_tool_functions(validated_request.tools)
+            self.session_store.create_session(server_data)
             
-            # Create MCPLambdaHandler instance with the tools
-            mcp_handler = MCPLambdaHandler(
-                name=validated_request.name,
-                version="1.0.0",
-                tools=tool_functions
-            )
+            # Store the handler in in-memory storage
+            self.active_handlers[session_id] = mcp_handler
             
-            # Prepare server data for storage
-            server_data = {
-                'session_id': session_id,
-                'name': validated_request.name,
-                'description': validated_request.description,
-                'tools': [tool.dict() for tool in validated_request.tools],
-                'status': 'active',
-                'created_at': int(time.time()),
-                'updated_at': int(time.time())
-            }
-            
-            # Store server configuration in DynamoDB
-            try:
-                self.session_store.create_session(server_data)
-                
-                return {
-                    'statusCode': 201,
-                    'body': json.dumps({
-                        'message': 'MCP server created successfully',
-                        'session_id': session_id,
-                        'status': 'created',
-                        'server_details': {
-                            'name': validated_request.name,
-                            'description': validated_request.description,
-                            'tools_count': len(validated_request.tools),
-                            'created_at': server_data['created_at']
-                        }
-                    }),
-                    'headers': {
-                        'Content-Type': 'application/json'
-                    }
-                }
-                
-            except Exception as storage_error:
-                return {
-                    'statusCode': 500,
-                    'body': json.dumps({
-                        'error': f'Failed to store server configuration: {str(storage_error)}'
-                    }),
-                    'headers': {
-                        'Content-Type': 'application/json'
-                    }
-                }
-            
-        except json.JSONDecodeError:
             return {
-                'statusCode': 400,
+                'statusCode': 201,
                 'body': json.dumps({
-                    'error': 'Invalid JSON in request body'
+                    'message': 'MCP server created successfully',
+                    'session_id': session_id,
+                    'status': 'created',
+                    'server_details': {
+                        'name': validated_request.name,
+                        'description': validated_request.description,
+                        'tools_count': len(validated_request.tools),
+                        'created_at': server_data['created_at']
+                    }
                 }),
                 'headers': {
                     'Content-Type': 'application/json'
                 }
             }
+                
         except Exception as e:
             return {
                 'statusCode': 500,
@@ -205,7 +278,37 @@ class MCPServerHandler:
                 'headers': {
                     'Content-Type': 'application/json'
                 }
-                            }
+            }
+        
+    def load_server(self, session_id: str, event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+        """
+        Load a stored MCPLambdaHandler instance by session_id
+        """
+        
+        # Check if session_id is in the active_handlers dictionary
+        if session_id not in self.active_handlers:
+            # Try load from DynamoDB
+            session = self.session_store.get_session(session_id)
+            validated_request = MCPServerRequest(**session)
+            if validated_request:
+                server_data, mcp_handler = self._new_server(validated_request)
+                self.active_handlers[session_id] = mcp_handler
+                handler = mcp_handler
+            else:
+                return {
+                    'statusCode': 404,
+                    'body': json.dumps({
+                        'error': 'Session not found'
+                    }),
+                    'headers': {
+                        'Content-Type': 'application/json'
+                    }
+                }
+        else:
+            handler = self.active_handlers[session_id]
+
+        return handler.handle_request(event, context)
+
 
 # Create a global instance for use in router
 mcp_server_handler = MCPServerHandler()

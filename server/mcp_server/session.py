@@ -86,26 +86,6 @@ class SessionStore(ABC):
         pass
 
 
-class NoOpSessionStore(SessionStore):
-    """A no-op session store that doesn't actually store sessions."""
-
-    def create_session(self, session_data: Optional[Dict[str, Any]] = None) -> str:
-        """Create a new session ID but don't store anything."""
-        return str(uuid.uuid4())
-
-    def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
-        """Return an empty session data."""
-        return {}
-
-    def update_session(self, session_id: str, session_data: Dict[str, Any]) -> bool:
-        """Pretend to update but do nothing."""
-        return True
-
-    def delete_session(self, session_id: str) -> bool:
-        """Pretend to delete but do nothing."""
-        return True
-
-
 class DynamoDBSessionStore(SessionStore):
     """Manages MCP sessions using DynamoDB."""
 
@@ -147,18 +127,10 @@ class DynamoDBSessionStore(SessionStore):
         """
         try:
             response = self.table.get_item(Key={'session_id': session_id})
-            item = response.get('Item')
-
-            if not item:
+            session = response.get('Item')
+            if not session:
                 return None
-
-            # Check if session has expired
-            if item.get('expires_at', 0) < time.time():
-                self.delete_session(session_id)
-                return None
-
-            return item.get('data', {})
-
+            return session
         except Exception as e:
             logger.error(f'Error getting session {session_id}: {e}')
             return None

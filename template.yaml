@@ -3,10 +3,6 @@ Transform: AWS::Serverless-2016-10-31
 Description: MCP-compliant server using HTTP in Lambda
 
 Parameters:
-  McpAuthToken:
-    Type: String
-    NoEcho: true
-    Description: "The authentication token for MCP"
   DomainName:
     Type: String
     Default: "app.mockmcp.com"
@@ -42,7 +38,7 @@ Resources:
       CodeUri: authorizer/
       Environment:
         Variables:
-          MCP_AUTH_TOKEN: !Ref McpAuthToken
+          MCP_AUTH_TOKEN: "1234567890"
       Policies:
         - Version: '2012-10-17'
           Statement:
