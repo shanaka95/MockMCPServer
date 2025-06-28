@@ -1,6 +1,67 @@
-import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 function Login() {
+  const navigate = useNavigate()
+  const { login, loading, isAuthenticated } = useAuth()
+  
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  })
+  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/demo')
+    }
+  }, [isAuthenticated, navigate])
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    })
+    // Clear error when user starts typing
+    if (error) setError('')
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields')
+      return
+    }
+
+    setIsSubmitting(true)
+    setError('')
+
+    const result = await login(formData.email, formData.password)
+    
+    if (result.success) {
+      navigate('/demo')
+    } else {
+      setError(result.error || 'Login failed. Please try again.')
+    }
+    
+    setIsSubmitting(false)
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-[calc(100vh-80px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-neutral-600">Loading...</p>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-[calc(100vh-80px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
@@ -18,8 +79,14 @@ function Login() {
               Sign in to continue building with MockMCP
             </p>
           </div>
+
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800 text-sm">{error}</p>
+            </div>
+          )}
           
-          <form className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-2">
                 Email address
@@ -27,9 +94,12 @@ function Login() {
               <input 
                 type="email" 
                 id="email" 
-                name="email" 
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
                 className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800 placeholder-neutral-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                 placeholder="Enter your email"
+                required
               />
             </div>
             
@@ -40,9 +110,12 @@ function Login() {
               <input 
                 type="password" 
                 id="password" 
-                name="password" 
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
                 className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800 placeholder-neutral-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                 placeholder="Enter your password"
+                required
               />
             </div>
             
@@ -58,9 +131,10 @@ function Login() {
             
             <button 
               type="submit" 
-              className="btn-primary w-full py-3 rounded-lg text-base font-semibold"
+              disabled={isSubmitting}
+              className="btn-primary w-full py-3 rounded-lg text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign in
+              {isSubmitting ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
           

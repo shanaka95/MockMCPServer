@@ -48,9 +48,6 @@ Resources:
       Environment:
         Variables:
           MCP_AUTH_TOKEN: "1234567890"
-          USER_POOL_ID: !Ref MockMcpUserPool
-          USER_POOL_CLIENT_ID: !Ref MockMcpUserPoolClient
-          AWS_REGION: !Ref AWS::Region
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -87,7 +84,6 @@ Resources:
           USER_POOL_ID: !Ref MockMcpUserPool
           USER_POOL_CLIENT_ID: !Ref MockMcpUserPoolClient
           IDENTITY_POOL_ID: !Ref MockMcpIdentityPool
-          AWS_REGION: !Ref AWS::Region
       Policies:
         - Statement:
             - Effect: Allow
@@ -253,10 +249,10 @@ Resources:
         - openid
         - profile
       CallbackURLs:
-        - !Sub "https://${DomainName}/login/callback"
+        - "https://www.mockmcp.com/login/callback"
         - "http://localhost:5173/login/callback"
       LogoutURLs:
-        - !Sub "https://${DomainName}/logout"
+        - "https://www.mockmcp.com/logout"
         - "http://localhost:5173/logout"
       # Security
       PreventUserExistenceErrors: ENABLED
@@ -328,7 +324,7 @@ Outputs:
     Value: !Sub "https://${McpApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/mcp"
   McpCustomDomainApi:
     Description: "Custom domain URL for MCP server"
-    Value: !Sub "https://${DomainName}"
+    Value: "https://www.mockmcp.com"
   McpSessionsTableName:
     Description: "Name of the DynamoDB table for MCP sessions"
     Value: !Ref McpSessionsTable

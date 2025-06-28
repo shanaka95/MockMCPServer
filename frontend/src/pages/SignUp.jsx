@@ -1,6 +1,99 @@
-import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 function SignUp() {
+  const navigate = useNavigate()
+  const { register, loading, isAuthenticated } = useAuth()
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  })
+  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/demo')
+    }
+  }, [isAuthenticated, navigate])
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    })
+    // Clear error when user starts typing
+    if (error) setError('')
+  }
+
+  const validateForm = () => {
+    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+      setError('Please fill in all required fields')
+      return false
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      return false
+    }
+
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters long')
+      return false
+    }
+
+    if (!agreedToTerms) {
+      setError('Please agree to the Terms of Service and Privacy Policy')
+      return false
+    }
+
+    return true
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    if (!validateForm()) {
+      return
+    }
+
+    setIsSubmitting(true)
+    setError('')
+
+    const result = await register(formData.name, formData.email, formData.password)
+    
+    if (result.success) {
+      // Navigate to email confirmation page with email and username in state
+      navigate('/confirm-email', { 
+        state: { 
+          email: formData.email,
+          username: result.username 
+        }
+      })
+    } else {
+      setError(result.error || 'Registration failed. Please try again.')
+    }
+    
+    setIsSubmitting(false)
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-[calc(100vh-80px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-neutral-600">Loading...</p>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-[calc(100vh-80px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
@@ -18,8 +111,30 @@ function SignUp() {
               Start building mock servers in less than 30 seconds
             </p>
           </div>
+
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800 text-sm">{error}</p>
+            </div>
+          )}
           
-          <form className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-neutral-700 mb-2">
+                Full Name
+              </label>
+              <input 
+                type="text" 
+                id="name" 
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800 placeholder-neutral-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                placeholder="Enter your full name"
+                required
+              />
+            </div>
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-2">
                 Email address
@@ -27,9 +142,12 @@ function SignUp() {
               <input 
                 type="email" 
                 id="email" 
-                name="email" 
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
                 className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800 placeholder-neutral-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                 placeholder="Enter your email"
+                required
               />
             </div>
             
@@ -40,9 +158,13 @@ function SignUp() {
               <input 
                 type="password" 
                 id="password" 
-                name="password" 
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
                 className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800 placeholder-neutral-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                 placeholder="Create a strong password"
+                required
+                minLength={8}
               />
             </div>
             
@@ -53,15 +175,23 @@ function SignUp() {
               <input 
                 type="password" 
                 id="confirmPassword" 
-                name="confirmPassword" 
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
                 className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800 placeholder-neutral-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                 placeholder="Confirm your password"
+                required
               />
             </div>
             
             <div>
               <label className="flex items-start">
-                <input type="checkbox" className="w-4 h-4 text-blue-600 border-neutral-300 rounded focus:ring-blue-500 mt-1" />
+                <input 
+                  type="checkbox" 
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-neutral-300 rounded focus:ring-blue-500 mt-1" 
+                />
                 <span className="ml-3 text-sm text-neutral-600">
                   I agree to the{' '}
                   <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">Terms of Service</a>
@@ -73,9 +203,10 @@ function SignUp() {
             
             <button 
               type="submit" 
-              className="btn-success w-full py-3 rounded-lg text-base font-semibold"
+              disabled={isSubmitting}
+              className="btn-success w-full py-3 rounded-lg text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create account
+              {isSubmitting ? 'Creating account...' : 'Create account'}
             </button>
           </form>
           
