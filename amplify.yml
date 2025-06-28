@@ -29,7 +29,3 @@ applications:
             value: 'nosniff'
           - key: 'Referrer-Policy'
             value: 'strict-origin-when-cross-origin'
-    redirects:
-      - source: '/<*>'
-        target: '/index.html'
-        status: '200' 
