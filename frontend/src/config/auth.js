@@ -13,8 +13,15 @@ export const amplifyConfig = {
       // Amazon Cognito Region
       region: 'eu-central-1',
       
-      // Optional: Configure sign up verification method
+      // Custom Cognito Auth Domain
       loginWith: {
+        oauth: {
+          domain: 'auth.mockmcp.com',
+          scopes: ['email', 'openid', 'profile'],
+          redirectSignIn: ['https://www.mockmcp.com/login/callback', 'http://localhost:5173/login/callback'],
+          redirectSignOut: ['https://www.mockmcp.com/logout', 'http://localhost:5173/logout'],
+          responseType: 'code'
+        },
         email: true,
         username: false,
         phone: false

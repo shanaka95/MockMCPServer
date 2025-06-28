@@ -6,7 +6,7 @@ applications:
         preBuild:
           commands:
             - echo "Installing frontend dependencies..."
-            - npm ci
+            - npm install --legacy-peer-deps
         build:
           commands:
             - echo "Building React app with Vite..."
