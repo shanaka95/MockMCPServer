@@ -1,0 +1,22 @@
+version: 1
+applications:
+  - appRoot: frontend
+    env:
+      variables:
+        NODE_VERSION: '18'
+    phases:
+      preBuild:
+        commands:
+          - echo "Installing dependencies for frontend..."
+          - npm ci
+      build:
+        commands:
+          - echo "Building React app with Vite..."
+          - npm run build
+    artifacts:
+      baseDirectory: dist
+      files:
+        - '**/*'
+    cache:
+      paths:
+        - node_modules/**/* 
