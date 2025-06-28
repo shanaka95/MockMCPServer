@@ -1,0 +1,12 @@
+{
+  "version": "3.0",
+  "frontend": {
+    "framework": "react",
+    "config": {
+      "SourceDir": "frontend",
+      "DistributionDir": "frontend/dist",
+      "BuildCommand": "npm run build",
+      "StartCommand": "npm run dev"
+    }
+  }
+} 
