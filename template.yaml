@@ -22,11 +22,6 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Prod
-      Cors:
-        AllowMethods: "'GET,POST,OPTIONS,PUT,DELETE'"
-        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-        AllowOrigin: "'*'"
-        MaxAge: "'600'"
       Auth:
         Authorizers:
           TokenAuthorizer:
@@ -34,10 +29,6 @@ Resources:
             FunctionPayloadType: TOKEN
             Identity:
               ReauthorizeEvery: 300
-              Header: Authorization
-          CognitoAuthorizer:
-            UserPoolArn: !GetAtt MockMcpUserPool.Arn
-            Identity:
               Header: Authorization
 
   McpAuthorizerFunction:
