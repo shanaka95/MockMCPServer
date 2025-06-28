@@ -9,6 +9,7 @@ function Servers() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [copiedStates, setCopiedStates] = useState({})
+  const [tokenVisibility, setTokenVisibility] = useState({})
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -60,6 +61,10 @@ function Servers() {
     } catch (err) {
       console.error('Failed to copy: ', err)
     }
+  }
+
+  const toggleTokenVisibility = (serverId) => {
+    setTokenVisibility(prev => ({ ...prev, [serverId]: !prev[serverId] }))
   }
 
   const copyConfiguration = async (server) => {
@@ -237,10 +242,10 @@ function Servers() {
           <div className="space-y-6 fade-in">
             {servers.map((server) => (
               <div key={server.session_id} className="hero-card rounded-2xl p-8">
-                <div className="grid lg:grid-cols-2 gap-8 items-center">
+                <div className="grid lg:grid-cols-3 gap-8 items-center">
                   
                   {/* Server Info */}
-                  <div>
+                  <div className="lg:col-span-2">
                     <div className="flex items-center gap-3 mb-4">
                       {getStatusBadge(server.status)}
                       <span className="text-sm text-neutral-500">
@@ -265,11 +270,74 @@ function Servers() {
                       <div className="flex items-start gap-3">
                         <span className="text-sm font-medium text-neutral-500 mt-1">URL:</span>
                         <div className="flex-1">
-                          <code className="text-sm text-neutral-700 bg-neutral-100 px-2 py-1 rounded break-all">
-                            {`https://app.mockmcp.com/server/${server.session_id}/mcp`}
-                          </code>
+                          <div className="flex items-center gap-2 bg-neutral-100 px-2 py-1 rounded">
+                            <code className="text-sm text-neutral-700 flex-1 break-all">
+                              {`https://app.mockmcp.com/server/${server.session_id}/mcp`}
+                            </code>
+                            <button 
+                              onClick={() => copyToClipboard(`https://app.mockmcp.com/server/${server.session_id}/mcp`, server.session_id, 'url')}
+                              className="text-neutral-500 hover:text-neutral-700 p-1 rounded"
+                              title="Copy URL"
+                            >
+                              {copiedStates[`${server.session_id}-url`] ? (
+                                <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
                         </div>
                       </div>
+                      
+                      {server.m2m_token && (
+                        <div className="flex items-start gap-3">
+                          <span className="text-sm font-medium text-neutral-500 mt-1">Auth Token:</span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 bg-neutral-100 px-2 py-1 rounded">
+                              <code className="text-sm text-neutral-700 flex-1 break-all">
+                                Bearer {tokenVisibility[server.session_id] ? server.m2m_token : '••••••••••'}
+                              </code>
+                              <div className="flex items-center gap-1">
+                                <button 
+                                  onClick={() => toggleTokenVisibility(server.session_id)}
+                                  className="text-neutral-500 hover:text-neutral-700 p-1 rounded text-xs"
+                                  title={tokenVisibility[server.session_id] ? "Hide token" : "Show token"}
+                                >
+                                  {tokenVisibility[server.session_id] ? (
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 11-4.243-4.243m4.242 4.242L9.88 9.88" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                  )}
+                                </button>
+                                <button 
+                                  onClick={() => copyToClipboard(server.m2m_token, server.session_id, 'token')}
+                                  className="text-neutral-500 hover:text-neutral-700 p-1 rounded"
+                                  title="Copy token"
+                                >
+                                  {copiedStates[`${server.session_id}-token`] ? (
+                                    <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex flex-col sm:flex-row gap-3">
@@ -318,7 +386,7 @@ function Servers() {
                   </div>
 
                   {/* Visual Elements */}
-                  <div className="relative">
+                  <div className="relative lg:col-span-1">
                     <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-100">
                       <div className="text-center">
                         <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">

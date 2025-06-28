@@ -3,13 +3,16 @@ import { Link } from 'react-router-dom'
 
 function Demo() {
   const [copied, setCopied] = useState(false)
+  const [copiedToken, setCopiedToken] = useState(false)
+  const [showToken, setShowToken] = useState(false)
   
   const demoServer = {
     name: "demo-server",
     type: "streamable-http",
-    url: "https://app.mockmcp.com/server/cef7c8b9-40b7-4440-9151-9a8e9c581458/mcp",
-    note: "For Streamable HTTP connections, add this URL directly in your MCP Client",
-    description: "Returns the real-time status of mockmcp.com"
+    url: "https://app.mockmcp.com/server/bFuE4mmKgQuZ/mcp",
+    note: "For Streamable HTTP connections, add this URL and Authorization header to your MCP Client",
+    description: "Returns the real-time status of mockmcp.com",
+    token: "mcp_m2m_cD7a3xLePmDgzZvh4ZxAMu3M0pc3EA4lfg3PkeSKO2Q_ad5f6e301782e62f"
   }
 
   const copyToClipboard = async () => {
@@ -22,12 +25,29 @@ function Demo() {
     }
   }
 
+  const copyToken = async () => {
+    try {
+      await navigator.clipboard.writeText(demoServer.token)
+      setCopiedToken(true)
+      setTimeout(() => setCopiedToken(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy: ', err)
+    }
+  }
+
+  const toggleTokenVisibility = () => {
+    setShowToken(!showToken)
+  }
+
   const copyConfiguration = async () => {
     const config = JSON.stringify({
       mcpServers: {
         [demoServer.name]: {
           type: demoServer.type,
           url: demoServer.url,
+          headers: {
+            Authorization: `Bearer ${demoServer.token}`
+          },
           note: demoServer.note
         }
       }
@@ -66,10 +86,10 @@ function Demo() {
 
         {/* Demo Server Card */}
         <div className="hero-card rounded-2xl p-8 mb-8 fade-in">
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
+          <div className="grid lg:grid-cols-3 gap-8 items-center">
             
             {/* Server Info */}
-            <div>
+            <div className="lg:col-span-2">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-3 h-3 bg-emerald-500 rounded-full pulse-dot"></div>
                 <span className="text-sm font-medium text-emerald-600 uppercase tracking-wide">Active Server</span>
@@ -92,9 +112,70 @@ function Demo() {
                 <div className="flex items-start gap-3">
                   <span className="text-sm font-medium text-neutral-500 mt-1">URL:</span>
                   <div className="flex-1">
-                    <code className="text-sm text-neutral-700 bg-neutral-100 px-2 py-1 rounded break-all">
-                      {demoServer.url}
-                    </code>
+                    <div className="flex items-center gap-2 bg-neutral-100 px-2 py-1 rounded">
+                      <code className="text-sm text-neutral-700 flex-1 break-all">
+                        {demoServer.url}
+                      </code>
+                      <button 
+                        onClick={copyToClipboard}
+                        className="text-neutral-500 hover:text-neutral-700 p-1 rounded"
+                        title="Copy URL"
+                      >
+                        {copied ? (
+                          <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <span className="text-sm font-medium text-neutral-500 mt-1">Auth Token:</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 bg-neutral-100 px-2 py-1 rounded">
+                      <code className="text-sm text-neutral-700 flex-1 break-all">
+                        Bearer {showToken ? demoServer.token : '••••••••••'}
+                      </code>
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={toggleTokenVisibility}
+                          className="text-neutral-500 hover:text-neutral-700 p-1 rounded text-xs"
+                          title={showToken ? "Hide token" : "Show token"}
+                        >
+                          {showToken ? (
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 11-4.243-4.243m4.242 4.242L9.88 9.88" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          )}
+                        </button>
+                        <button 
+                          onClick={copyToken}
+                          className="text-neutral-500 hover:text-neutral-700 p-1 rounded"
+                          title="Copy token"
+                        >
+                          {copiedToken ? (
+                            <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -134,7 +215,7 @@ function Demo() {
             </div>
 
             {/* Visual Elements */}
-            <div className="relative">
+            <div className="relative lg:col-span-1">
               <div className="bg-gradient-to-br from-blue-50 to-emerald-50 rounded-2xl p-6 border border-blue-100">
                 <div className="text-center">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
