@@ -71,7 +71,7 @@ function SEOHead({
       <link rel="dns-prefetch" href="https://mockmcp.com" />
       
       {/* Security and Privacy - Note: Security headers should be set by server, not meta tags */}
-      <meta httpEquiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://mockmcp.com https://api.mockmcp.com https://*.amazonaws.com https://cognito-idp.*.amazonaws.com;" />
+      <meta httpEquiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://mockmcp.com https://app.mockmcp.com https://api.mockmcp.com https://*.amazonaws.com https://cognito-idp.eu-central-1.amazonaws.com https://2m6gy0dpe3.execute-api.eu-central-1.amazonaws.com;" />
       <meta name="referrer" content="strict-origin-when-cross-origin" />
       
       {/* Mobile and Accessibility */}

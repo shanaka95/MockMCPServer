@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { apiConfig } from '../config/auth'
 
 function Servers() {
   const navigate = useNavigate()
@@ -29,7 +30,7 @@ function Servers() {
       setLoading(true)
       const token = await getAccessToken()
       
-      const response = await fetch('https://app.mockmcp.com/server', {
+      const response = await fetch(`${apiConfig.mcpApiEndpoint}/server`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -74,7 +75,7 @@ function Servers() {
         mcpServers: {
           [server.name]: {
             type: "streamable-http",
-            url: `https://app.mockmcp.com/server/${server.session_id}/mcp`,
+            url: `${apiConfig.mcpApiEndpoint}/server/${server.session_id}/mcp`,
             headers: {
               Authorization: `Bearer ${server.m2m_token}`
             },
@@ -91,7 +92,7 @@ function Servers() {
         mcpServers: {
           [server.name]: {
             type: "streamable-http", 
-            url: `https://app.mockmcp.com/server/${server.session_id}/mcp`,
+            url: `${apiConfig.mcpApiEndpoint}/server/${server.session_id}/mcp`,
             note: "Warning: Unable to generate configuration with authentication header."
           }
         }
