@@ -16,7 +16,7 @@ function Login() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/demo')
+      navigate('/servers')
     }
   }, [isAuthenticated, navigate])
 
@@ -43,7 +43,7 @@ function Login() {
     const result = await login(formData.email, formData.password)
     
     if (result.success) {
-      navigate('/demo')
+      navigate('/servers')
     } else {
       setError(result.error || 'Login failed. Please try again.')
     }

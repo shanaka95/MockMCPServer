@@ -183,7 +183,7 @@ function CreateServer() {
       
       // Reset form or redirect after success
       setTimeout(() => {
-        navigate('/demo')
+        navigate('/servers')
       }, 2000)
 
     } catch (error) {
@@ -497,7 +497,7 @@ function CreateServer() {
             <div className="flex justify-end space-x-4 pt-4 border-t border-neutral-200">
               <button
                 type="button"
-                onClick={() => navigate('/demo')}
+                onClick={() => navigate('/servers')}
                 className="btn-outline px-6 py-3 rounded-lg font-medium"
                 disabled={isSubmitting}
               >

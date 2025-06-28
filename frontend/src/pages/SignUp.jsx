@@ -19,7 +19,7 @@ function SignUp() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/demo')
+      navigate('/servers')
     }
   }, [isAuthenticated, navigate])
 

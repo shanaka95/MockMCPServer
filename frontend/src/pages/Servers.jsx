@@ -170,9 +170,10 @@ function Servers() {
             <p className="text-neutral-600 mb-4">{error}</p>
             <button 
               onClick={fetchServers}
-              className="btn-primary px-4 py-2 rounded-lg text-sm font-medium"
+              disabled={loading}
+              className="btn-primary px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Try Again
+              {loading ? 'Loading...' : 'Try Again'}
             </button>
           </div>
         </div>
