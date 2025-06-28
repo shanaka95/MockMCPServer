@@ -209,17 +209,28 @@ function Servers() {
             </div>
             <h2 className="text-2xl font-bold text-neutral-900 mb-4">No Servers Yet</h2>
             <p className="text-neutral-600 mb-6 max-w-md mx-auto">
-              You haven't created any MCP servers yet. Get started by creating your first server.
+              You haven't created any MCP servers yet. Get started by creating your first server or explore the demo to see how it works.
             </p>
-            <a
-              href="/create-server"
-              className="btn-primary px-6 py-3 rounded-xl font-semibold inline-flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Create Your First Server
-            </a>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a
+                href="/create-server"
+                className="btn-primary px-6 py-3 rounded-xl font-semibold inline-flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create Your First Server
+              </a>
+              <a
+                href="/demo"
+                className="btn-outline px-6 py-3 rounded-xl font-semibold inline-flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                View Demo
+              </a>
+            </div>
           </div>
         ) : (
           /* Server List */
