@@ -45,6 +45,7 @@ Resources:
       Environment:
         Variables:
           MCP_AUTH_TOKEN: "1234567890"
+          USER_POOL_ID: !Ref MockMcpUserPool
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -104,16 +105,16 @@ Resources:
             Path: /{proxy+}
             Method: ANY
             RestApiId: !Ref McpApi
-            # Auth:
-            #   Authorizer: TokenAuthorizer
+            Auth:
+              Authorizer: TokenAuthorizer
         McpAPIRoot:
           Type: Api
           Properties:
             Path: /
             Method: ANY
             RestApiId: !Ref McpApi
-            # Auth:
-            #   Authorizer: TokenAuthorizer
+            Auth:
+              Authorizer: TokenAuthorizer
 
   # SSL Certificate for REGIONAL API Gateway
   ApiCertificate:

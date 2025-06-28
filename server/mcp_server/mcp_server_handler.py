@@ -102,7 +102,7 @@ class MCPServerHandler:
         
         return tool_functions
     
-    def _new_server(self, request_data: Dict[str, Any], session_id: str = None) -> Tuple[Dict[str, Any], MCPLambdaHandler]:
+    def _new_server(self, request_data: Dict[str, Any], user_id: str, session_id: str = None) -> Tuple[Dict[str, Any], MCPLambdaHandler]:
        
         # Generate unique server ID
         session_id = session_id if session_id else str(uuid.uuid4())
@@ -120,23 +120,25 @@ class MCPServerHandler:
         # Prepare server data for storage
         server_data = {
             'session_id': session_id,
+            'user_id': user_id,
             'name': request_data.name,
             'description': request_data.description,
             'tools': [tool.dict() for tool in request_data.tools],
             'status': 'active',
             'created_at': int(time.time()),
-            'updated_at': int(time.time())
+            'updated_at': int(time.time()),
+            'expires_at': int(time.time()) + (24 * 60 * 60)  # Expire after 24 hours
         }
 
         return server_data, mcp_handler
 
-    def create_server(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
+    def create_server(self, request_data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
         """
         Handle MCP server creation request
         
         Args:
-            event: AWS Lambda event object containing request details
-            context: AWS Lambda context object
+            request_data: Request data containing server configuration
+            user_id: ID of the authenticated user creating the server
             
         Returns:
             Dict containing response with status code and body
@@ -157,7 +159,7 @@ class MCPServerHandler:
                     }
                 }
             
-            server_data, mcp_handler = self._new_server(validated_request)
+            server_data, mcp_handler = self._new_server(validated_request, user_id)
 
             session_id = server_data['session_id']
             
@@ -196,25 +198,59 @@ class MCPServerHandler:
                 }
             }
         
-    def load_server(self, session_id: str, event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    def load_server(self, session_id: str, user_id: str, event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         """
         Load a stored MCPLambdaHandler instance by session_id
+        
+        Args:
+            session_id: The session ID to load
+            user_id: ID of the authenticated user requesting the server
+            event: AWS Lambda event object
+            context: AWS Lambda context object
+            
+        Returns:
+            Response from the MCP handler or error response
         """
         
         # Check if session_id is in the active_handlers dictionary
         if session_id not in self.active_handlers:
             # Try load from DynamoDB
             session = self.session_store.get_session(session_id)
-            validated_request = MCPServerRequest(**session)
-            if validated_request:
-                server_data, mcp_handler = self._new_server(validated_request)
-                self.active_handlers[session_id] = mcp_handler
-                handler = mcp_handler
-            else:
+            if not session:
                 return {
                     'statusCode': 404,
                     'body': json.dumps({
                         'error': 'Session not found'
+                    }),
+                    'headers': {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            
+            # Verify that the session belongs to the requesting user
+            if session.get('user_id') != user_id:
+                return {
+                    'statusCode': 403,
+                    'body': json.dumps({
+                        'error': 'Access denied: Session does not belong to authenticated user'
+                    }),
+                    'headers': {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            
+            # Create the validated request from session data
+            try:
+                validated_request = MCPServerRequest(**session)
+                server_data, mcp_handler = self._new_server(validated_request, user_id)
+                self.active_handlers[session_id] = mcp_handler
+                handler = mcp_handler
+            except ValidationError as e:
+                return {
+                    'statusCode': 500,
+                    'body': json.dumps({
+                        'error': 'Invalid session data',
+                        'details': e.errors()
                     }),
                     'headers': {
                         'Content-Type': 'application/json'

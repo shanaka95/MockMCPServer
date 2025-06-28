@@ -14,6 +14,27 @@ def router(event, context):
     """
     path = event.get('path', '')
     
+    # Extract user ID from authorizer context
+    user_id = None
+    request_context = event.get('requestContext', {})
+    authorizer_context = request_context.get('authorizer', {})
+    
+    if isinstance(authorizer_context, dict):
+        user_id = authorizer_context.get('userId')
+    
+    if not user_id:
+        return {
+            'statusCode': 401,
+            'body': json.dumps({
+                'error': 'User ID not found in request context'
+            }),
+            'headers': {
+                'Content-Type': 'application/json'
+            }
+        }
+    
+    print(f"Processing request for user: {user_id}")
+    
     # Get first part of path
     path_parts = path.split('/')
     print(path_parts)
@@ -26,9 +47,9 @@ def router(event, context):
             # Extract and validate request data using Pydantic
             request_data = json.loads(event.get('body', '{}'))
             # Handle MCP server creation request
-            return mcp_server_handler.create_server(request_data)
+            return mcp_server_handler.create_server(request_data, user_id)
         elif resource == 'server' and protocol == 'mcp':
-            return mcp_server_handler.load_server(session_id, event, context)
+            return mcp_server_handler.load_server(session_id, user_id, event, context)
         
     
     # Default 404 response
