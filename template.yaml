@@ -22,6 +22,11 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Prod
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS,PUT,DELETE'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+        MaxAge: "'600'"
       Auth:
         Authorizers:
           TokenAuthorizer:
@@ -29,6 +34,10 @@ Resources:
             FunctionPayloadType: TOKEN
             Identity:
               ReauthorizeEvery: 300
+              Header: Authorization
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt MockMcpUserPool.Arn
+            Identity:
               Header: Authorization
 
   McpAuthorizerFunction:
@@ -39,6 +48,9 @@ Resources:
       Environment:
         Variables:
           MCP_AUTH_TOKEN: "1234567890"
+          USER_POOL_ID: !Ref MockMcpUserPool
+          USER_POOL_CLIENT_ID: !Ref MockMcpUserPoolClient
+          AWS_REGION: !Ref AWS::Region
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -72,6 +84,10 @@ Resources:
       Environment:
         Variables:
           MCP_SESSION_TABLE: !Ref McpSessionsTable
+          USER_POOL_ID: !Ref MockMcpUserPool
+          USER_POOL_CLIENT_ID: !Ref MockMcpUserPoolClient
+          IDENTITY_POOL_ID: !Ref MockMcpIdentityPool
+          AWS_REGION: !Ref AWS::Region
       Policies:
         - Statement:
             - Effect: Allow
@@ -155,6 +171,156 @@ Resources:
         HostedZoneId: !GetAtt ApiDomainName.RegionalHostedZoneId
     DependsOn:
       - ApiDomainName
+
+  # Cognito User Pool
+  MockMcpUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "MockMCP-UserPool"
+      # Account Recovery and Security
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      # Password Policy - Production Settings
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          TemporaryPasswordValidityDays: 7
+      # User Attributes
+      AliasAttributes:
+        - email
+        - preferred_username
+      AutoVerifiedAttributes:
+        - email
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+        - Name: name
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+      # Email Configuration
+      EmailConfiguration:
+        EmailSendingAccount: COGNITO_DEFAULT
+      # Verification Messages
+      EmailVerificationMessage: "Your MockMCP verification code is {####}"
+      EmailVerificationSubject: "Your MockMCP verification code"
+      # User Pool Add-ons
+      UserPoolAddOns:
+        AdvancedSecurityMode: ENFORCED
+      # Deletion Protection
+      DeletionProtection: ACTIVE
+      # Device Configuration
+      DeviceConfiguration:
+        ChallengeRequiredOnNewDevice: false
+        DeviceOnlyRememberedOnUserPrompt: true
+
+  # Cognito User Pool Client
+  MockMcpUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref MockMcpUserPool
+      ClientName: !Sub "MockMCP-WebClient"
+      # Auth Flows
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+      # Token Configuration
+      RefreshTokenValidity: 30
+      AccessTokenValidity: 60
+      IdTokenValidity: 60
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
+      # OAuth Configuration
+      SupportedIdentityProviders:
+        - COGNITO
+      AllowedOAuthFlows:
+        - code
+        - implicit
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+      CallbackURLs:
+        - !Sub "https://${DomainName}/login/callback"
+        - "http://localhost:5173/login/callback"
+      LogoutURLs:
+        - !Sub "https://${DomainName}/logout"
+        - "http://localhost:5173/logout"
+      # Security
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+      # Attribute Permissions
+      ReadAttributes:
+        - email
+        - name
+        - email_verified
+      WriteAttributes:
+        - email
+        - name
+
+  # Cognito User Pool Domain
+  MockMcpUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub "mockmcp-${AWS::AccountId}"
+      UserPoolId: !Ref MockMcpUserPool
+
+  # Cognito Identity Pool (for AWS SDK access if needed)
+  MockMcpIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: !Sub "MockMCP_IdentityPool"
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref MockMcpUserPoolClient
+          ProviderName: !GetAtt MockMcpUserPool.ProviderName
+
+  # IAM Role for Authenticated Users
+  CognitoAuthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref MockMcpIdentityPool
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: authenticated
+      Policies:
+        - PolicyName: CognitoAuthenticatedPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cognito-sync:*
+                  - cognito-identity:*
+                Resource: '*'
+
+  # Identity Pool Role Attachment
+  IdentityPoolRoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref MockMcpIdentityPool
+      Roles:
+        authenticated: !GetAtt CognitoAuthenticatedRole.Arn
 
 Outputs:
   MCPServerApi:
