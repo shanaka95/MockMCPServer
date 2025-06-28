@@ -1,23 +1,74 @@
-/* All styles are now loaded via CDN Tailwind in index.html */
-/* This file is kept minimal to avoid conflicts */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-body {
-  margin: 0;
-  padding: 0;
-}
-
-/* Custom animations for status indicators */
-.pulse-dot {
-  animation: pulse-dot 2s infinite;
-}
-
-@keyframes pulse-dot {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
+/* Custom base styles */
+@layer base {
+  * {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
   }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.1);
+  
+  body {
+    @apply m-0 p-0 bg-gradient-to-br from-neutral-50 to-neutral-100 text-neutral-800;
+  }
+  
+  :root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --success: #059669;
+    --success-hover: #047857;
+  }
+}
+
+/* Custom component styles */
+@layer components {
+  .glass-nav {
+    @apply bg-white/90 backdrop-blur-sm border-b border-black/5;
+  }
+  
+  .hero-card {
+    @apply bg-white shadow-md border border-neutral-200;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white transition-colors;
+  }
+  
+  .btn-success {
+    @apply bg-success-600 hover:bg-success-700 text-white transition-colors;
+  }
+  
+  .btn-outline {
+    @apply bg-transparent text-neutral-700 border border-neutral-300 hover:bg-neutral-50 hover:border-neutral-400 transition-colors;
+  }
+  
+  .feature-card {
+    @apply bg-white border border-neutral-200 hover:border-neutral-300 transition-colors;
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent;
+  }
+  
+  .fade-in {
+    @apply animate-in fade-in duration-500;
+  }
+}
+
+/* Custom animations */
+@layer utilities {
+  .pulse-dot {
+    animation: pulse-dot 2s infinite;
+  }
+  
+  @keyframes pulse-dot {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.1);
+    }
   }
 }

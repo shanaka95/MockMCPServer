@@ -67,7 +67,6 @@ function SEOHead({
       {/* Performance and Resource Hints */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link rel="dns-prefetch" href="https://cdn.tailwindcss.com" />
       <link rel="dns-prefetch" href="https://mockmcp.com" />
       
       {/* Security and Privacy - Note: Security headers are now set by server via _redirects file */}
