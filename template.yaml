@@ -7,14 +7,6 @@ Parameters:
     Type: String
     Default: "app.mockmcp.com"
     Description: "Custom domain name for the MCP API"
-  AuthDomainName:
-    Type: String
-    Default: "auth.mockmcp.com"
-    Description: "Custom domain name for Cognito Auth"
-  EmailFromAddress:
-    Type: String
-    Default: "noreply@mockmcp.com"
-    Description: "Email address for sending emails"
   HostedZoneId:
     Type: String
     Description: "The Route53 Hosted Zone ID for mockmcp.com (you can find this in Route53 console)"
@@ -191,82 +183,6 @@ Resources:
     DependsOn:
       - ApiDomainName
 
-  # SES Email Configuration
-  SESConfigurationSet:
-    Type: AWS::SES::ConfigurationSet
-    Properties:
-      Name: !Sub "${AWS::StackName}-email-config"
-
-  SESIdentity:
-    Type: AWS::SES::EmailIdentity
-    Properties:
-      EmailIdentity: !Ref EmailFromAddress
-      DkimSigningAttributes:
-        NextSigningKeyLength: RSA_2048_BIT
-      FeedbackAttributes:
-        EmailForwardingEnabled: false
-
-  # SES Domain Identity for mockmcp.com
-  SESDomainIdentity:
-    Type: AWS::SES::EmailIdentity
-    Properties:
-      EmailIdentity: "mockmcp.com"
-      DkimSigningAttributes:
-        NextSigningKeyLength: RSA_2048_BIT
-
-  # Associate configuration set with the email identity
-  SESConfigurationSetAssociation:
-    Type: AWS::SES::ConfigurationSetEventDestination
-    Properties:
-      ConfigurationSetName: !Ref SESConfigurationSet
-      EventDestination:
-        Name: "CloudWatchDestination"
-        Enabled: true
-        MatchingEventTypes:
-          - send
-          - bounce
-          - complaint
-          - delivery
-        CloudWatchDestination:
-          DimensionConfigurations:
-            - DimensionName: "EmailAddress"
-              DimensionValueSource: "emailHeader"
-              DefaultDimensionValue: "unknown"
-    DependsOn:
-      - SESConfigurationSet
-
-  # IAM Role for Cognito to use SES
-  CognitoSESRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: email.cognito-idp.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: CognitoSESPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - ses:SendEmail
-                  - ses:SendRawEmail
-                Resource: 
-                  - !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${EmailFromAddress}"
-                  - !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/mockmcp.com"
-              - Effect: Allow
-                Action:
-                  - ses:SendEmail
-                  - ses:SendRawEmail
-                Resource: '*'
-                Condition:
-                  StringEquals:
-                    ses:FromAddress: !Ref EmailFromAddress
-
   # Cognito User Pool
   MockMcpUserPool:
     Type: AWS::Cognito::UserPool
@@ -300,83 +216,12 @@ Resources:
           AttributeDataType: String
           Required: true
           Mutable: true
-      # Email Configuration - Use SES
+      # Email Configuration
       EmailConfiguration:
-        EmailSendingAccount: DEVELOPER
-        SourceArn: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${EmailFromAddress}"
-        From: !Sub "MockMCP <${EmailFromAddress}>"
-        ReplyToEmailAddress: !Ref EmailFromAddress
-      # Custom Email Messages with HTML
-      EmailVerificationMessage: !Sub |
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Verify Your MockMCP Account</title>
-            <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
-                .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-                .header { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 40px 20px; text-align: center; }
-                .logo { width: 120px; height: auto; margin-bottom: 20px; }
-                .header h1 { color: #ffffff; margin: 0; font-size: 28px; font-weight: 600; }
-                .content { padding: 40px; }
-                .verification-code { background-color: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; padding: 30px; text-align: center; margin: 30px 0; }
-                .code { font-family: 'Courier New', monospace; font-size: 32px; font-weight: bold; color: #2563eb; letter-spacing: 8px; margin: 15px 0; }
-                .footer { background-color: #f8fafc; padding: 30px; text-align: center; color: #64748b; font-size: 14px; }
-                .btn { display: inline-block; background-color: #2563eb; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }
-                .social { margin: 20px 0; }
-                .social a { margin: 0 10px; color: #64748b; text-decoration: none; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <svg class="logo" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="200" height="60" rx="8" fill="#ffffff"/>
-                        <text x="100" y="38" text-anchor="middle" fill="#2563eb" font-family="Arial, sans-serif" font-size="24" font-weight="bold">MockMCP</text>
-                    </svg>
-                    <h1>Welcome to MockMCP!</h1>
-                </div>
-                
-                <div class="content">
-                    <h2 style="color: #1e293b; margin-bottom: 20px;">Verify Your Email Address</h2>
-                    <p style="color: #475569; line-height: 1.6; margin-bottom: 30px;">
-                        Thank you for signing up for MockMCP! To complete your account setup and start creating mock MCP servers, please verify your email address using the code below:
-                    </p>
-                    
-                    <div class="verification-code">
-                        <p style="margin: 0; color: #64748b; font-size: 16px;">Your verification code is:</p>
-                        <div class="code">{####}</div>
-                        <p style="margin: 0; color: #64748b; font-size: 14px;">This code will expire in 24 hours</p>
-                    </div>
-                    
-                    <p style="color: #475569; line-height: 1.6;">
-                        Enter this code on the verification page to activate your account and start building mock MCP servers in seconds.
-                    </p>
-                    
-                    <p style="color: #475569; line-height: 1.6; font-size: 14px; margin-top: 30px;">
-                        If you didn't create a MockMCP account, you can safely ignore this email.
-                    </p>
-                </div>
-                
-                <div class="footer">
-                    <p><strong>MockMCP</strong> - Mock MCP Server Generator</p>
-                    <p>Create and deploy mock Model Context Protocol servers in 30 seconds</p>
-                    <div class="social">
-                        <a href="https://mockmcp.com">Website</a> |
-                        <a href="https://mockmcp.com/demo">Demo</a> |
-                        <a href="mailto:support@mockmcp.com">Support</a>
-                    </div>
-                    <p style="font-size: 12px; margin-top: 20px;">
-                        © 2024 MockMCP. All rights reserved.<br>
-                        This email was sent from an automated system, please do not reply.
-                    </p>
-                </div>
-            </div>
-        </body>
-        </html>
-      EmailVerificationSubject: "Verify your MockMCP account - Code: {####}"
+        EmailSendingAccount: COGNITO_DEFAULT
+      # Verification Messages
+      EmailVerificationMessage: "Your MockMCP verification code is {####}"
+      EmailVerificationSubject: "Your MockMCP verification code"
       # User Pool Add-ons
       UserPoolAddOns:
         AdvancedSecurityMode: ENFORCED
@@ -386,11 +231,6 @@ Resources:
       DeviceConfiguration:
         ChallengeRequiredOnNewDevice: false
         DeviceOnlyRememberedOnUserPrompt: true
-    DependsOn:
-      - SESIdentity
-      - SESDomainIdentity
-      - CognitoSESRole
-      - SESConfigurationSet
 
   # Cognito User Pool Client
   MockMcpUserPoolClient:
@@ -440,42 +280,12 @@ Resources:
         - email
         - name
 
-  # SSL Certificate for Auth Domain
-  AuthCertificate:
-    Type: AWS::CertificateManager::Certificate
-    Properties:
-      DomainName: !Ref AuthDomainName
-      ValidationMethod: DNS
-      DomainValidationOptions:
-        - DomainName: !Ref AuthDomainName
-          HostedZoneId: !Ref HostedZoneId
-      Tags:
-        - Key: Name
-          Value: !Sub "${AWS::StackName}-auth-certificate"
-
-  # Cognito User Pool Domain with Custom Domain
+  # Cognito User Pool Domain
   MockMcpUserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
     Properties:
-      Domain: !Ref AuthDomainName
+      Domain: !Sub "mockmcp-${AWS::AccountId}"
       UserPoolId: !Ref MockMcpUserPool
-      CustomDomainConfig:
-        CertificateArn: !Ref AuthCertificate
-    DependsOn:
-      - AuthCertificate
-
-  # Route53 record for Auth domain
-  AuthDNSRecord:
-    Type: AWS::Route53::RecordSet
-    Properties:
-      HostedZoneId: !Ref HostedZoneId
-      Name: !Ref AuthDomainName
-      Type: A
-      AliasTarget:
-        DNSName: !GetAtt MockMcpUserPoolDomain.CloudFrontDistribution
-        HostedZoneId: Z2FDTNDATAQYW2  # CloudFront Hosted Zone ID
-    DependsOn:
-      - MockMcpUserPoolDomain
 
   # Cognito Identity Pool (for AWS SDK access if needed)
   MockMcpIdentityPool:
@@ -535,9 +345,6 @@ Outputs:
   CertificateArn:
     Description: "ARN of the SSL certificate"
     Value: !Ref ApiCertificate
-  AuthCertificateArn:
-    Description: "ARN of the Auth SSL certificate"
-    Value: !Ref AuthCertificate
   UserPoolId:
     Description: "Cognito User Pool ID"
     Value: !Ref MockMcpUserPool
@@ -546,13 +353,4 @@ Outputs:
     Value: !Ref MockMcpUserPoolClient
   UserPoolDomain:
     Description: "Cognito User Pool Domain"
-    Value: !Ref AuthDomainName
-  AuthDomainURL:
-    Description: "Authentication URL for OAuth"
-    Value: !Sub "https://${AuthDomainName}"
-  SESIdentityArn:
-    Description: "SES Email Identity ARN"
-    Value: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${EmailFromAddress}"
-  EmailFromAddress:
-    Description: "Email address for sending emails"
-    Value: !Ref EmailFromAddress
+    Value: !Sub "mockmcp-${AWS::AccountId}"
