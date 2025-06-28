@@ -27,8 +27,12 @@ export default defineConfig({
     sourcemap: true,
   },
   server: {
+    // Set port to 3000 to match CORS configuration
+    port: 3000,
     // Hot module replacement for development
     hmr: true,
+    // Allow external connections for testing
+    host: true,
   },
   // SEO and performance optimizations
   define: {

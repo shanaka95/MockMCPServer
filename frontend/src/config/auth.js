@@ -18,8 +18,8 @@ export const amplifyConfig = {
         oauth: {
           domain: 'mockmcp-207567790021',
           scopes: ['email', 'openid', 'profile'],
-          redirectSignIn: ['https://www.mockmcp.com/login/callback', 'http://localhost:5173/login/callback'],
-          redirectSignOut: ['https://www.mockmcp.com/logout', 'http://localhost:5173/logout'],
+          redirectSignIn: ['https://www.mockmcp.com/login/callback', 'http://localhost:3000/login/callback'],
+          redirectSignOut: ['https://www.mockmcp.com/logout', 'http://localhost:3000/logout'],
           responseType: 'code'
         },
         email: true,
