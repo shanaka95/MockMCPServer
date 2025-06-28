@@ -7,6 +7,8 @@ import json
 import uuid
 import time
 import os
+import secrets
+import hashlib
 from decimal import Decimal
 from pydantic import BaseModel, Field, ValidationError, validator
 from mcp_server.session import DynamoDBSessionStore
@@ -128,10 +130,35 @@ class MCPServerHandler:
         
         return tool_functions
     
+    def _generate_m2m_token(self, session_id: str, user_id: str) -> str:
+        """
+        Generate a secure M2M token for MCP server access
+        
+        Args:
+            session_id: Unique session identifier
+            user_id: User who owns the server
+            
+        Returns:
+            str: Secure M2M token
+        """
+        # Generate a cryptographically secure random token
+        random_part = secrets.token_urlsafe(32)  # 256-bit entropy
+        
+        # Create a deterministic part based on session and user
+        deterministic_part = hashlib.sha256(f"{session_id}:{user_id}".encode()).hexdigest()[:16]
+        
+        # Combine with prefix for easy identification
+        m2m_token = f"mcp_m2m_{random_part}_{deterministic_part}"
+        
+        return m2m_token
+
     def _new_server(self, request_data: Dict[str, Any], user_id: str, session_id: str = None) -> Tuple[Dict[str, Any], MCPLambdaHandler]:
        
         # Generate unique server ID
         session_id = session_id if session_id else str(uuid.uuid4())
+        
+        # Generate M2M token for this server
+        m2m_token = self._generate_m2m_token(session_id, user_id)
         
         # Create tool functions from validated request
         tool_functions = self._create_tool_functions(request_data.tools)
@@ -151,6 +178,8 @@ class MCPServerHandler:
             'description': request_data.description,
             'tools': [tool.dict() for tool in request_data.tools],
             'status': 'active',
+            'm2m_token': m2m_token,  # Store M2M token
+            'm2m_token_hash': hashlib.sha256(m2m_token.encode()).hexdigest(),  # Store hash for validation
             'created_at': int(time.time()),
             'updated_at': int(time.time()),
             'expires_at': int(time.time()) + (24 * 60 * 60)  # Expire after 24 hours
@@ -200,12 +229,18 @@ class MCPServerHandler:
                     'message': 'MCP server created successfully',
                     'session_id': session_id,
                     'status': 'created',
+                    'm2m_token': server_data['m2m_token'],  # Return M2M token to user
                     'server_details': {
                         'name': validated_request.name,
                         'description': validated_request.description,
                         'tools_count': len(validated_request.tools),
                         'created_at': server_data['created_at'],
                         'url': f'https://app.mockmcp.com/server/{session_id}/mcp'
+                    },
+                    'authentication': {
+                        'type': 'Bearer',
+                        'token': server_data['m2m_token'],
+                        'usage': 'Use this token in Authorization header for MCP server access'
                     }
                 }),
                 'headers': {

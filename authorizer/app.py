@@ -2,11 +2,16 @@ import os
 import json
 import jwt
 import requests
+import boto3
+import hashlib
 from jwt.exceptions import InvalidTokenError, ExpiredSignatureError
 from cryptography.hazmat.primitives import serialization
 
+# Initialize DynamoDB client
+dynamodb = boto3.resource('dynamodb')
+
 def lambda_handler(event, context):
-    """Lambda authorizer for API Gateway that validates Cognito JWT tokens."""
+    """Lambda authorizer for API Gateway that validates Cognito JWT tokens and M2M tokens."""
     
     # Get the Authorization header from the event
     auth_header = event.get('authorizationToken', '')
@@ -18,39 +23,122 @@ def lambda_handler(event, context):
             print("Missing or invalid Authorization header format")
             raise Exception('Unauthorized')
         
-        # Extract JWT token
+        # Extract token
         token = auth_header.split(' ')[1]
         if not token:
             print("Empty token")
             raise Exception('Unauthorized')
         
-        # Validate token and get user ID
-        user_id = validate_cognito_token(token)
-        if not user_id:
-            print("Token validation failed")
-            raise Exception('Unauthorized')
-        
-        print(f"Successfully validated token for user: {user_id}")
-        
-        # Generate the IAM policy with user context
-        return {
-            'principalId': user_id,
-            'policyDocument': {
-                'Version': '2012-10-17',
-                'Statement': [{
-                    'Action': 'execute-api:Invoke',
-                    'Effect': 'Allow',
-                    'Resource': method_arn
-                }]
-            },
-            'context': {
-                'userId': user_id
+        # Determine token type and validate accordingly
+        if token.startswith('mcp_m2m_'):
+            # Handle M2M token
+            print("Processing M2M token")
+            validation_result = validate_m2m_token(token)
+            
+            if not validation_result:
+                print("M2M token validation failed")
+                raise Exception('Unauthorized')
+                
+            user_id, session_id = validation_result
+            print(f"Successfully validated M2M token for session: {session_id}, user: {user_id}")
+            
+            return {
+                'principalId': f"m2m:{session_id}:{user_id}",
+                'policyDocument': {
+                    'Version': '2012-10-17',
+                    'Statement': [{
+                        'Action': 'execute-api:Invoke',
+                        'Effect': 'Allow',
+                        'Resource': method_arn
+                    }]
+                },
+                'context': {
+                    'userId': user_id,
+                    'sessionId': session_id,
+                    'tokenType': 'm2m'
+                }
             }
-        }
+        else:
+            # Handle Cognito JWT token
+            print("Processing Cognito JWT token")
+            user_id = validate_cognito_token(token)
+            if not user_id:
+                print("Cognito token validation failed")
+                raise Exception('Unauthorized')
+            
+            print(f"Successfully validated Cognito token for user: {user_id}")
+            
+            return {
+                'principalId': user_id,
+                'policyDocument': {
+                    'Version': '2012-10-17',
+                    'Statement': [{
+                        'Action': 'execute-api:Invoke',
+                        'Effect': 'Allow',
+                        'Resource': method_arn
+                    }]
+                },
+                'context': {
+                    'userId': user_id,
+                    'tokenType': 'cognito'
+                }
+            }
         
     except Exception as e:
         print(f"Authorization failed: {str(e)}")
         raise Exception('Unauthorized')
+
+def validate_m2m_token(token):
+    """
+    Validate M2M token against stored hash in DynamoDB
+    
+    Args:
+        token: M2M token string
+        
+    Returns:
+        tuple: (user_id, session_id) if valid, None otherwise
+    """
+    try:
+        # Get DynamoDB table name from environment variable
+        table_name = os.environ.get('MCP_SESSION_TABLE', 'mcp_sessions')
+        table = dynamodb.Table(table_name)
+        
+        # Hash the provided token
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        
+        # Search for session with matching token hash
+        # Note: This is a scan operation which is not ideal for large datasets
+        # For production, consider using a GSI on m2m_token_hash
+        response = table.scan(
+            FilterExpression='m2m_token_hash = :token_hash',
+            ExpressionAttributeValues={
+                ':token_hash': token_hash
+            }
+        )
+        
+        if not response['Items']:
+            print("No session found with matching M2M token hash")
+            return None
+        
+        if len(response['Items']) > 1:
+            print("Multiple sessions found with same M2M token hash - security issue!")
+            return None
+        
+        session = response['Items'][0]
+        
+        # Check if session is still active
+        if session.get('status') != 'active':
+            print(f"Session {session.get('session_id')} is not active")
+            return None
+        
+        # For M2M tokens, we don't check expiration as they should be long-lived
+        # But you could add additional checks here if needed
+        
+        return session.get('user_id'), session.get('session_id')
+        
+    except Exception as e:
+        print(f"M2M token validation error: {str(e)}")
+        return None
 
 def validate_cognito_token(token):
     """

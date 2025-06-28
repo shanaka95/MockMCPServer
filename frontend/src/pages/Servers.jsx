@@ -63,17 +63,37 @@ function Servers() {
   }
 
   const copyConfiguration = async (server) => {
-    const config = JSON.stringify({
-      mcpServers: {
-        [server.name]: {
-          type: "streamable-http",
-          url: `https://app.mockmcp.com/server/${server.session_id}/mcp`,
-          note: "For Streamable HTTP connections, add this URL directly in your MCP Client"
+    try {
+      const token = await getAccessToken()
+      const config = JSON.stringify({
+        mcpServers: {
+          [server.name]: {
+            type: "streamable-http",
+            url: `https://app.mockmcp.com/server/${server.session_id}/mcp`,
+            headers: {
+              Authorization: `Bearer ${token}`
+            },
+            note: "For Streamable HTTP connections, add this URL and Authorization header to your MCP Client"
+          }
         }
-      }
-    }, null, 2)
-    
-    await copyToClipboard(config, server.session_id, 'config')
+      }, null, 2)
+      
+      await copyToClipboard(config, server.session_id, 'config')
+    } catch (error) {
+      console.error('Error getting access token for configuration:', error)
+      // Fallback config without auth header
+      const config = JSON.stringify({
+        mcpServers: {
+          [server.name]: {
+            type: "streamable-http", 
+            url: `https://app.mockmcp.com/server/${server.session_id}/mcp`,
+            note: "Warning: Unable to get current access token. You may need to add Authorization header manually."
+          }
+        }
+      }, null, 2)
+      
+      await copyToClipboard(config, server.session_id, 'config')
+    }
   }
 
   const formatDate = (timestamp) => {
