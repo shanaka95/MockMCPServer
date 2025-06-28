@@ -5,10 +5,10 @@ export const amplifyConfig = {
   Auth: {
     Cognito: {
       // Amazon Cognito User Pool ID
-      userPoolId: 'eu-central-1_4A3rsk3TT',
+      userPoolId: 'eu-central-1_MsY5AFTWl',
       
       // Amazon Cognito User Pool App Client ID  
-      userPoolClientId: '5smbn0ca814kbie95eqspgmnk4',
+      userPoolClientId: '4vmj8qnjb03avkimogpj38sj1j',
       
       // Amazon Cognito Region
       region: 'eu-central-1',
@@ -16,7 +16,7 @@ export const amplifyConfig = {
       // Custom Cognito Auth Domain
       loginWith: {
         oauth: {
-          domain: 'auth.mockmcp.com',
+          domain: 'mockmcp-207567790021',
           scopes: ['email', 'openid', 'profile'],
           redirectSignIn: ['https://www.mockmcp.com/login/callback', 'http://localhost:5173/login/callback'],
           redirectSignOut: ['https://www.mockmcp.com/logout', 'http://localhost:5173/logout'],
@@ -42,5 +42,17 @@ export const amplifyConfig = {
 
 // Export individual config parts for potential future use
 export const cognitoConfig = amplifyConfig.Auth.Cognito; 
+
+// API Configuration
+export const apiConfig = {
+  // API Gateway endpoint for MCP server
+  mcpApiEndpoint: 'https://2m6gy0dpe3.execute-api.eu-central-1.amazonaws.com/Prod',
+  
+  // Custom domain API endpoint
+  customDomainEndpoint: 'https://www.mockmcp.com',
+  
+  // DynamoDB table name for sessions
+  sessionsTableName: 'sam-app-mcp-sessions'
+};
 
 
