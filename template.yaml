@@ -60,9 +60,18 @@ Resources:
       AttributeDefinitions:
         - AttributeName: session_id
           AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
       KeySchema:
         - AttributeName: session_id
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdIndex
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
       BillingMode: PAY_PER_REQUEST
       TimeToLiveSpecification:
         AttributeName: expires_at
@@ -97,7 +106,10 @@ Resources:
                 - dynamodb:PutItem
                 - dynamodb:UpdateItem
                 - dynamodb:DescribeTable
-              Resource: !GetAtt McpSessionsTable.Arn
+                - dynamodb:Query
+              Resource: 
+                - !GetAtt McpSessionsTable.Arn
+                - !Sub "${McpSessionsTable.Arn}/index/*"
       Events:
         McpAPI:
           Type: Api

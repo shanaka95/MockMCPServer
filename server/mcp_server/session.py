@@ -23,7 +23,8 @@ import logging
 import time
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
+from boto3.dynamodb.conditions import Key
 
 
 logger = logging.getLogger(__name__)
@@ -133,6 +134,27 @@ class DynamoDBSessionStore(SessionStore):
             return session
         except Exception as e:
             logger.error(f'Error getting session {session_id}: {e}')
+            return None
+        
+    def get_all_sessions(self, user_id: str) -> Optional[List[Dict[str, Any]]]:
+        """Get all sessions for a user.
+
+        Args:
+            user_id: The user ID to look up
+
+        Returns:
+            List of session data or None if not found   
+        """
+        try:
+            # Query the UserIdIndex GSI to efficiently get all sessions for a user
+            response = self.table.query(
+                IndexName='UserIdIndex',
+                KeyConditionExpression=Key('user_id').eq(user_id)
+            )
+            sessions = response.get('Items', [])
+            return sessions
+        except Exception as e:
+            logger.error(f'Error getting all sessions for user {user_id}: {e}')
             return None
 
     def update_session(self, session_id: str, session_data: Dict[str, Any]) -> bool:

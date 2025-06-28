@@ -28,7 +28,7 @@ function Navigation() {
   return (
     <header className="glass-nav sticky top-0 z-50 px-6 py-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <Link to={isAuthenticated ? "/servers" : "/"} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-emerald-600 rounded-lg flex items-center justify-center">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -37,30 +37,40 @@ function Navigation() {
           <h2 className="text-xl font-bold text-neutral-800">
             MockMCP
           </h2>
-        </div>
+        </Link>
         
         <nav className="hidden md:flex items-center gap-8">
-          <Link 
-            to="/" 
-            className="text-neutral-600 hover:text-neutral-800 text-sm font-medium"
-          >
-            Home
-          </Link>
-          <Link 
-            to="/demo" 
-            className="text-neutral-600 hover:text-neutral-800 text-sm font-medium"
-          >
-            Demo
-          </Link>
-          {isAuthenticated && (
-            <Link 
-              to="/create-server" 
-              className="text-neutral-600 hover:text-neutral-800 text-sm font-medium"
-            >
-              Create Server
-            </Link>
+          {isAuthenticated ? (
+            <>
+              <Link 
+                to="/servers" 
+                className="text-neutral-600 hover:text-neutral-800 text-sm font-medium"
+              >
+                My Servers
+              </Link>
+              <Link 
+                to="/create-server" 
+                className="text-neutral-600 hover:text-neutral-800 text-sm font-medium"
+              >
+                Create Server
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link 
+                to="/" 
+                className="text-neutral-600 hover:text-neutral-800 text-sm font-medium"
+              >
+                Home
+              </Link>
+              <Link 
+                to="/demo" 
+                className="text-neutral-600 hover:text-neutral-800 text-sm font-medium"
+              >
+                Demo
+              </Link>
+            </>
           )}
-          {/* Removed non-functional links for simplicity */}
         </nav>
         
         <div className="flex items-center gap-3">
@@ -88,11 +98,11 @@ function Navigation() {
                     <p className="text-xs text-neutral-500">{user?.attributes?.email}</p>
                   </div>
                   <Link
-                    to="/demo"
+                    to="/servers"
                     className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
                     onClick={() => setShowUserMenu(false)}
                   >
-                    Dashboard
+                    My Servers
                   </Link>
                   <Link
                     to="/create-server"
@@ -103,7 +113,7 @@ function Navigation() {
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                    className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-t border-neutral-100 mt-1"
                   >
                     Sign Out
                   </button>

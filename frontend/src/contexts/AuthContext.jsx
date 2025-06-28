@@ -7,7 +7,8 @@ import {
   getCurrentUser,
   fetchUserAttributes,
   confirmSignUp,
-  resendSignUpCode
+  resendSignUpCode,
+  fetchAuthSession
 } from 'aws-amplify/auth';
 import { amplifyConfig } from '../config/auth';
 
@@ -269,6 +270,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Get the current user's access token
+   * @returns {Promise<string>} Access token
+   * @throws {Error} If user is not authenticated or token retrieval fails
+   */
+  const getAccessToken = async () => {
+    try {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const session = await fetchAuthSession();
+      
+      if (!session?.tokens?.accessToken) {
+        throw new Error('No access token available');
+      }
+
+      return session.tokens.accessToken.toString();
+    } catch (error) {
+      console.error('Error getting access token:', error);
+      throw error;
+    }
+  };
+
   // Context value object
   const value = {
     // State
@@ -284,6 +309,7 @@ export const AuthProvider = ({ children }) => {
     resendConfirmationCode,
     logout,
     checkAuthState,
+    getAccessToken,
   };
 
   return (

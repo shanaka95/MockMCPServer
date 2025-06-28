@@ -7,7 +7,8 @@ import json
 import uuid
 import time
 import os
-from pydantic import BaseModel, Field, ValidationError
+from decimal import Decimal
+from pydantic import BaseModel, Field, ValidationError, validator
 from mcp_server.session import DynamoDBSessionStore
 from mcp_server import MCPLambdaHandler
 
@@ -31,6 +32,31 @@ class MCPServerRequest(BaseModel):
     name: str = Field(..., min_length=1, description="Server name")
     description: str = Field(..., min_length=1, description="Server description")
     tools: List[ToolDefinition] = Field(..., min_items=1, description="List of tools")
+
+
+class MCPServerListResponse(BaseModel):
+    """Model for MCP server list response data - handles DynamoDB Decimal conversion"""
+    session_id: str
+    user_id: str
+    name: str
+    description: str
+    tools: List[Dict[str, Any]]
+    status: str
+    created_at: int
+    updated_at: int
+    expires_at: int
+    
+    @validator('created_at', 'updated_at', 'expires_at', pre=True)
+    def convert_decimal_to_int(cls, v):
+        """Convert DynamoDB Decimal objects to integers"""
+        if isinstance(v, Decimal):
+            return int(v)
+        return v
+
+    class Config:
+        """Pydantic config"""
+        # Allow arbitrary types for flexibility
+        arbitrary_types_allowed = True
 
 
 class MCPServerHandler:
@@ -260,6 +286,67 @@ class MCPServerHandler:
             handler = self.active_handlers[session_id]
 
         return handler.handle_request(event, context)
+    
+    def get_all_servers(self, user_id: str) -> Dict[str, Any]:
+        """
+        Get all MCP servers for a user
+        
+        Args:
+            user_id: ID of the authenticated user
+            
+        Returns:
+            Dict containing response with status code and body
+        """
+        try:
+            sessions = self.session_store.get_all_sessions(user_id)
+            
+            if sessions is None:
+                sessions = []
+            
+            # Convert DynamoDB data to Pydantic models for proper JSON serialization
+            server_responses = []
+            for session in sessions:
+                try:
+                    # Check if this server is currently active (loaded in memory)
+                    session_id = session.get('session_id')
+                    if session_id in self.active_handlers:
+                        # Server is loaded in memory - keep status as active
+                        session['status'] = 'active'
+                    else:
+                        # Server is stored but not loaded - mark as idle
+                        session['status'] = 'idle'
+                    
+                    server_response = MCPServerListResponse(**session)
+                    server_responses.append(server_response.dict())
+                except ValidationError as e:
+                    # Log the error but continue processing other sessions
+                    print(f"Error converting session {session.get('session_id', 'unknown')}: {e}")
+                    continue
+            
+            return {
+                'statusCode': 200,
+                'body': json.dumps(server_responses),
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+                }
+            }
+            
+        except Exception as e:
+            return {
+                'statusCode': 500,
+                'body': json.dumps({
+                    'error': f'Failed to retrieve servers: {str(e)}'
+                }),
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+                }
+            }
 
 
 # Create a global instance for use in router

@@ -46,9 +46,15 @@ def router(event, context):
         if resource == 'server' and protocol != 'mcp' and event.get('httpMethod') == 'POST':
             # Extract and validate request data using Pydantic
             request_data = json.loads(event.get('body', '{}'))
+            print(f"Creating server for user: {user_id}")
             # Handle MCP server creation request
             return mcp_server_handler.create_server(request_data, user_id)
+        elif resource == 'server' and protocol != 'mcp' and event.get('httpMethod') == 'GET':
+            # Handle MCP server creation request
+            print(f"Getting all servers for user: {user_id}")
+            return mcp_server_handler.get_all_servers(user_id)
         elif resource == 'server' and protocol == 'mcp':
+            print(f"Loading server for user: {user_id}")
             return mcp_server_handler.load_server(session_id, user_id, event, context)
         
     
