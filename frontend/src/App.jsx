@@ -40,6 +40,8 @@ function App() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/password-reset" element={<PasswordReset />} />
             <Route path="/confirm-email" element={<EmailConfirmation />} />
+            {/* Catch-all route for 404s - redirect to home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
       </div>
