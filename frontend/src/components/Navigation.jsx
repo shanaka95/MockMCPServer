@@ -12,9 +12,12 @@ function Navigation() {
   }
 
   const getUserDisplayName = () => {
-    // Try name first, then email username, then fallback
+    // Try name first (show only first name), then email username, then fallback
     if (user?.attributes?.name) {
-      return user.attributes.name
+      return user.attributes.name.split(' ')[0]
+    }
+    if (user?.attributes?.given_name) {
+      return user.attributes.given_name
     }
     if (user?.attributes?.email) {
       return user.attributes.email.split('@')[0]
