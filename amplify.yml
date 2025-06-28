@@ -3,11 +3,11 @@ applications:
   - appRoot: frontend
     env:
       variables:
-        NODE_VERSION: '18'
+        NODE_VERSION: '22'
     phases:
       preBuild:
         commands:
-          - echo "Installing dependencies for frontend..."
+          - echo "Installing dependencies..."
           - npm ci
       build:
         commands:
