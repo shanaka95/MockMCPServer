@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="180" height="48" viewBox="0 0 180 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient Definition -->
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="dropShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" flood-opacity="0.15" stdDeviation="2"/>
+    </filter>
+  </defs>
+  
+  <!-- Lightning Bolt -->
+  <path
+    d="M26 4L6 28H24L22 44L42 20H24L26 4Z"
+    fill="url(#logoGradient)"
+    filter="url(#dropShadow)"
+  />
+  
+  <!-- Subtle highlight -->
+  <path
+    d="M26 4L24 12L22 20H16L26 4Z"
+    fill="rgba(255,255,255,0.2)"
+  />
+  
+  <!-- MockMCP Text -->
+  <text x="60" y="32" font-family="Poppins, system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" fill="url(#textGradient)">
+    MockMCP
+  </text>
+</svg> 

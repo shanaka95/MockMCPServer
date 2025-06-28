@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import Logo from './Logo'
 
 function Navigation() {
   const { user, isAuthenticated, logout } = useAuth()
@@ -29,11 +30,7 @@ function Navigation() {
     <header className="glass-nav sticky top-0 z-50 px-6 py-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <Link to={isAuthenticated ? "/servers" : "/"} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-emerald-600 rounded-lg flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
+          <Logo size="md" />
           <h2 className="text-xl font-bold text-neutral-800">
             MockMCP
           </h2>

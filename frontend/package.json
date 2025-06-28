@@ -7,12 +7,17 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:analyze": "vite build --mode analyze && npx vite-bundle-analyzer dist/stats.html",
+    "seo:test": "echo 'Running SEO tests...' && node scripts/seo-test.js",
+    "seo:lighthouse": "lighthouse http://localhost:4173 --output json --output html --output-path ./lighthouse-report --chrome-flags='--headless'",
+    "seo:validate": "echo 'Validating sitemap and robots.txt...' && node scripts/validate-seo.js"
   },
   "dependencies": {
     "aws-amplify": "^6.15.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-helmet-async": "^2.0.5",
     "react-router-dom": "^7.6.3"
   },
   "devDependencies": {

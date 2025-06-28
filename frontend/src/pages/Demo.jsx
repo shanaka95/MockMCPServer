@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import SEOHead from '../components/SEOHead'
 
 function Demo() {
   const [copied, setCopied] = useState(false)
@@ -13,6 +14,37 @@ function Demo() {
     note: "For Streamable HTTP connections, add this URL and Authorization header to your MCP Client",
     description: "Returns the real-time status of mockmcp.com",
     token: "mcp_m2m_cD7a3xLePmDgzZvh4ZxAMu3M0pc3EA4lfg3PkeSKO2Q_ad5f6e301782e62f"
+  }
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "MockMCP Demo - Try Live MCP Server",
+    "description": "Experience MockMCP with our live demo server. Test Model Context Protocol connections and see real-time server status responses.",
+    "url": "https://mockmcp.com/demo",
+    "mainEntity": {
+      "@type": "SoftwareApplication",
+      "name": "MockMCP Demo Server",
+      "description": "Live demonstration of MockMCP's MCP server capabilities",
+      "applicationCategory": "DeveloperApplication"
+    },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://mockmcp.com"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Demo",
+          "item": "https://mockmcp.com/demo"
+        }
+      ]
+    }
   }
 
   const copyToClipboard = async () => {
@@ -63,17 +95,26 @@ function Demo() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-80px)] py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
-        
-        {/* Header */}
-        <div className="text-center mb-12 fade-in">
+    <>
+      <SEOHead 
+        title="Live Demo - Try MockMCP MCP Server"
+        description="Experience MockMCP with our live demo server. Test Model Context Protocol connections, see real-time responses, and learn how to integrate MCP servers with AI agents."
+        keywords="MCP demo, live demo, Model Context Protocol demo, AI agent testing demo, mock server example"
+        canonicalUrl="/demo"
+        structuredData={structuredData}
+      />
+      
+      <main className="min-h-[calc(100vh-80px)] py-12 px-4 sm:px-6 lg:px-8" role="main">
+        <div className="max-w-5xl mx-auto">
+          
+          {/* Header */}
+          <section className="text-center mb-12 fade-in" aria-labelledby="demo-heading">
           <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 text-sm font-medium px-4 py-2 rounded-full mb-6 border border-emerald-200">
             <div className="w-2 h-2 bg-emerald-500 rounded-full pulse-dot"></div>
             Live Demo Server
           </div>
           
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 leading-tight mb-6">
+          <h1 id="demo-heading" className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 leading-tight mb-6">
             Try Our
             <span className="text-gradient block">Demo MCP Server</span>
           </h1>
@@ -82,10 +123,10 @@ function Demo() {
             Experience the power of MockMCP with our live demo server that provides real-time status of mockmcp.com. 
             Connect your MCP client and ask your LLM about our service status!
           </p>
-        </div>
+        </section>
 
         {/* Demo Server Card */}
-        <div className="hero-card rounded-2xl p-8 mb-8 fade-in">
+        <section className="hero-card rounded-2xl p-8 mb-8 fade-in" aria-labelledby="demo-server-heading">
           <div className="grid lg:grid-cols-3 gap-8 items-center">
             
             {/* Server Info */}
@@ -95,7 +136,7 @@ function Demo() {
                 <span className="text-sm font-medium text-emerald-600 uppercase tracking-wide">Active Server</span>
               </div>
               
-              <h2 className="text-2xl font-bold text-neutral-900 mb-2">{demoServer.name}</h2>
+              <h2 id="demo-server-heading" className="text-2xl font-bold text-neutral-900 mb-2">{demoServer.name}</h2>
               <p className="text-neutral-600 text-sm mb-4">{demoServer.description}</p>
               
               <div className="space-y-3 mb-6">
@@ -231,10 +272,10 @@ function Demo() {
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Usage Instructions */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12 fade-in">
+        <section className="grid md:grid-cols-3 gap-6 mb-12 fade-in" aria-labelledby="usage-instructions">
           <div className="feature-card p-6 rounded-xl flex flex-col h-full">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -285,11 +326,11 @@ function Demo() {
               </code>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Next Steps */}
-        <div className="text-center fade-in">
-          <h2 className="text-2xl font-bold text-neutral-900 mb-4">Ready to Build Your Own?</h2>
+        <section className="text-center fade-in" aria-labelledby="next-steps">
+          <h2 id="next-steps" className="text-2xl font-bold text-neutral-900 mb-4">Ready to Build Your Own?</h2>
           <p className="text-neutral-600 mb-6 max-w-2xl mx-auto">
             Create your own custom MCP servers with MockMCP. Build status checkers, 
             API proxies, data providers, and more. Configure responses and deploy in seconds.
@@ -306,10 +347,11 @@ function Demo() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </Link>
-        </div>
+        </section>
         
       </div>
     </main>
+    </>
   )
 }
 

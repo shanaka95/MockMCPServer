@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://mockmcp.com/sitemap.xml
+
+# Crawl delay for politeness
+Crawl-delay: 1
+
+# Disallow certain directories if any (currently allowing all)
+# Disallow: /private/
+
+# Allow specific important pages
+Allow: /
+Allow: /demo
+Allow: /login
+Allow: /signup 

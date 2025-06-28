@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import Logo from './Logo';
 
 function EmailConfirmation() {
   const navigate = useNavigate();
@@ -96,10 +97,8 @@ function EmailConfirmation() {
       <div className="max-w-md w-full">
         <div className="hero-card rounded-2xl p-8">
           <div className="text-center mb-8">
-            <div className="w-12 h-12 mx-auto bg-gradient-to-br from-emerald-600 to-blue-600 rounded-xl flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
+            <div className="mb-4 flex justify-center">
+              <Logo size="lg" />
             </div>
             <h1 className="text-2xl font-bold text-neutral-800 mb-2">
               Confirm Your Email

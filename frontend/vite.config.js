@@ -1,23 +1,42 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-    sourcemap: false,
+    // Optimize for production
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+    // Enable code splitting for better caching
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom']
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          aws: ['aws-amplify'],
+          helmet: ['react-helmet-async']
         }
       }
-    }
+    },
+    // Generate source maps for production debugging
+    sourcemap: true,
   },
   server: {
-    port: 3000,
-    host: true
-  }
+    // Hot module replacement for development
+    hmr: true,
+  },
+  // SEO and performance optimizations
+  define: {
+    // Remove development-only code in production
+    __DEV__: JSON.stringify(process.env.NODE_ENV === 'development'),
+  },
+  // Preload critical resources
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'react-helmet-async'],
+  },
 })
