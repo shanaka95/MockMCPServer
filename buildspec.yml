@@ -7,11 +7,17 @@ applications:
     phases:
       preBuild:
         commands:
+          - echo "Installing Node.js 22..."
+          - nvm install 22
+          - nvm use 22
+          - node --version
+          - npm --version
           - echo "Installing dependencies..."
           - npm ci
       build:
         commands:
           - echo "Building React app with Vite..."
+          - nvm use 22
           - npm run build
     artifacts:
       baseDirectory: dist
