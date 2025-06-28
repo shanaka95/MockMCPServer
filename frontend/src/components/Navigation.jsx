@@ -42,16 +42,24 @@ function Navigation() {
         <nav className="hidden md:flex items-center gap-8">
           <Link 
             to="/" 
-            className="text-neutral-600 hover:text-neutral-800 text-sm font-medium transition-colors"
+            className="text-neutral-600 hover:text-neutral-800 text-sm font-medium"
           >
             Home
           </Link>
           <Link 
             to="/demo" 
-            className="text-neutral-600 hover:text-neutral-800 text-sm font-medium transition-colors"
+            className="text-neutral-600 hover:text-neutral-800 text-sm font-medium"
           >
             Demo
           </Link>
+          {isAuthenticated && (
+            <Link 
+              to="/create-server" 
+              className="text-neutral-600 hover:text-neutral-800 text-sm font-medium"
+            >
+              Create Server
+            </Link>
+          )}
           {/* Removed non-functional links for simplicity */}
         </nav>
         
@@ -85,6 +93,13 @@ function Navigation() {
                     onClick={() => setShowUserMenu(false)}
                   >
                     Dashboard
+                  </Link>
+                  <Link
+                    to="/create-server"
+                    className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    Create Server
                   </Link>
                   <button
                     onClick={handleLogout}

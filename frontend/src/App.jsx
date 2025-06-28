@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import SignUp from './pages/SignUp'
 import Demo from './pages/Demo'
+import CreateServer from './pages/CreateServer'
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/demo" element={<Demo />} />
+            <Route path="/create-server" element={<CreateServer />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/confirm-email" element={<EmailConfirmation />} />
