@@ -138,6 +138,47 @@ class S3Service:
         
         return image_bytes, content_type, file_extension
     
+    def get_image(self, s3_key: str, s3_bucket: str = None) -> tuple[str, str]:
+        """
+        Download image from S3 and return as base64 encoded data
+        
+        Args:
+            s3_key: S3 key of the image
+            s3_bucket: Optional bucket name, uses default if not provided
+            
+        Returns:
+            tuple: (base64_encoded_data, mime_type)
+            
+        Raises:
+            Exception: If download fails
+        """
+        try:
+            bucket = s3_bucket or self.bucket_name
+            
+            # Get object from S3
+            response = self.s3_client.get_object(Bucket=bucket, Key=s3_key)
+            image_bytes = response['Body'].read()
+            
+            # Get content type from response
+            content_type = response.get('ContentType', DEFAULT_IMAGE_CONTENT_TYPE)
+            
+            # Convert to base64
+            base64_data = base64.b64encode(image_bytes).decode('utf-8')
+            
+            print(f"Successfully downloaded image from S3: {s3_key}")
+            return base64_data, content_type
+            
+        except ClientError as e:
+            error_code = int(e.response['Error']['Code'])
+            if error_code == 403:
+                raise Exception(f"Access denied downloading from S3 bucket '{bucket}'. Check IAM permissions.")
+            elif error_code == 404:
+                raise Exception(f"Image not found: {s3_key} in bucket '{bucket}'")
+            else:
+                raise Exception(f"AWS error downloading image from S3: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Failed to download image from S3: {str(e)}")
+
     @property
     def bucket(self) -> str:
         """Get the current S3 bucket name"""

@@ -34,6 +34,7 @@ from ..types import (
     ServerInfo,
     TextContent,
 )
+from .output_handler import OutputHandler
 from enum import Enum
 from typing import (
     Any,
@@ -71,6 +72,7 @@ class MCPLambdaHandler:
         self.version = version
         self.tools: Dict[str, Dict] = {}
         self.tool_implementations: Dict[str, Callable] = {}
+        self.output_handler = OutputHandler()
         
         # Process tools if provided
         if tools:
@@ -310,7 +312,8 @@ class MCPLambdaHandler:
                             converted_args[arg_name] = arg_value
 
                     result = tool_func(**converted_args)
-                    content = [TextContent(text=str(result)).model_dump()]
+                    content = self.output_handler.process_output(result)
+                    print(f'Content: {content}')
                     return self._create_success_response(
                         {'content': content}, request.id
                     )

@@ -15,6 +15,7 @@ the shared services, models, and utilities.
 from .image_handler import ImageHandler
 from .mcp_server_handler import MCPServerHandler
 from .mcp_lambda_handler import MCPLambdaHandler
+from .output_handler import OutputHandler
 
 # Lazy initialization - instances created on first access
 _image_handler = None
