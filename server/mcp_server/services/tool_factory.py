@@ -62,26 +62,29 @@ class ToolFactory:
         Returns:
             Tool execution result as string
         """
-        # Handle different output types
-        if tool_def.output_type == 'text':
-            return tool_def.output_text
-        elif tool_def.output_type == 'image' and tool_def.output_image:
+        # Handle different output types using new unified structure
+        output_type = tool_def.output.output_type
+        output_content = tool_def.output.output_content
+        
+        if output_type == 'text':
+            return output_content.get('text', '')
+        elif output_type == 'image':
             # Return image information as JSON
             return json.dumps({
                 "type": "image",
-                "s3_key": tool_def.output_image.s3_key,
-                "s3_bucket": tool_def.output_image.s3_bucket
+                "s3_key": output_content.get('s3_key', ''),
+                "s3_bucket": output_content.get('s3_bucket', '')
             })
-        elif tool_def.output_type == 'custom' and tool_def.output_custom:
+        elif output_type == 'custom':
             # Return custom flow information as JSON
             return json.dumps({
                 "type": "custom_flow",
-                "flow_type": tool_def.output_custom.flow_type,
-                "configuration": tool_def.output_custom.configuration
+                "flow_type": output_content.get('flow_type', ''),
+                "configuration": output_content.get('configuration', '')
             })
         else:
             # Fallback to text output
-            return tool_def.output_text
+            return output_content.get('text', '')
     
     @staticmethod
     def _set_function_metadata(tool_function: Callable, tool_def: ToolDefinition) -> None:

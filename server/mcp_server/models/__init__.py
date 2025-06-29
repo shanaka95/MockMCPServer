@@ -3,11 +3,10 @@ Models package for MCP Server Handler
 """
 
 from .server_models import (
+    Output,
     ParameterDefinition,
     ToolDefinition,
-    MCPServerRequest,
-    ImageOutput,
-    CustomOutput
+    MCPServerRequest
 )
 
 from .response_models import (
@@ -15,10 +14,9 @@ from .response_models import (
 )
 
 __all__ = [
+    'Output',
     'ParameterDefinition',
     'ToolDefinition', 
     'MCPServerRequest',
-    'ImageOutput',
-    'CustomOutput',
     'MCPServerListResponse'
 ] 

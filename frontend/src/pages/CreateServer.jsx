@@ -15,23 +15,20 @@ function CreateServer() {
       {
         name: 'HelloWorld',
         description: 'Provides the server status of mockmcp.com',
-        output_type: 'text', // 'text', 'image', 'custom'
-        output_text: JSON.stringify({
-          "status": "online",
-          "message": "Hi, mockmcp.com is online and running normally.",
-          "timestamp": new Date().toISOString(),
-          "server": "MockMCP"
-        }, null, 2),
-        output_image: {
-          s3_key: '',
-          s3_bucket: '',
-          filename: '',
-          preview: ''
+        output: {
+          output_type: 'text',
+          output_content: {
+            text: JSON.stringify({
+              "status": "online",
+              "message": "Hi, mockmcp.com is online and running normally.",
+              "timestamp": new Date().toISOString(),
+              "server": "MockMCP"
+            }, null, 2)
+          }
         },
-        output_custom: {
-          flow_type: '',
-          configuration: ''
-        },
+        // Temporary UI fields (not sent to backend)
+        _ui_image_preview: '',
+        _ui_image_filename: '',
         parameters: {
           name: {
             type: 'string',
@@ -89,10 +86,50 @@ function CreateServer() {
 
   const handleToolChange = (index, field, value) => {
     const updatedTools = [...formData.tools]
-    updatedTools[index] = {
-      ...updatedTools[index],
-      [field]: value
+    
+    if (field.startsWith('output.')) {
+      // Handle nested output fields
+      const subField = field.replace('output.', '')
+      if (subField === 'output_type') {
+        // Change output type - reset content based on type
+        let newContent = {}
+        if (value === 'text') {
+          newContent = { text: '' }
+        } else if (value === 'image') {
+          newContent = { s3_key: '', s3_bucket: '' }
+        } else if (value === 'custom') {
+          newContent = { flow_type: '', configuration: '' }
+        }
+        
+        updatedTools[index] = {
+          ...updatedTools[index],
+          output: {
+            output_type: value,
+            output_content: newContent
+          }
+        }
+      } else if (subField.startsWith('output_content.')) {
+        // Update specific content field
+        const contentField = subField.replace('output_content.', '')
+        updatedTools[index] = {
+          ...updatedTools[index],
+          output: {
+            ...updatedTools[index].output,
+            output_content: {
+              ...updatedTools[index].output.output_content,
+              [contentField]: value
+            }
+          }
+        }
+      }
+    } else {
+      // Handle other fields normally
+      updatedTools[index] = {
+        ...updatedTools[index],
+        [field]: value
+      }
     }
+    
     setFormData({
       ...formData,
       tools: updatedTools
@@ -115,7 +152,7 @@ function CreateServer() {
       finalValue = prettifyJson(value)
     }
     
-    handleToolChange(toolIndex, 'output_text', finalValue)
+    handleToolChange(toolIndex, 'output.output_content.text', finalValue)
   }
 
   const handleImageUpload = async (toolIndex, file) => {
@@ -159,12 +196,16 @@ function CreateServer() {
       
       // Update the form data with the uploaded image S3 key
       const updatedTools = [...formData.tools]
-      updatedTools[toolIndex].output_image = {
-        s3_key: result.key,
-        s3_bucket: result.bucket,
-        filename: file.name,
-        preview: base64 // Store base64 for preview
+      updatedTools[toolIndex].output = {
+        output_type: 'image',
+        output_content: {
+          s3_key: result.key,
+          s3_bucket: result.bucket
+        }
       }
+      // Store UI-only fields for preview
+      updatedTools[toolIndex]._ui_image_filename = file.name
+      updatedTools[toolIndex]._ui_image_preview = base64
       
       setFormData({
         ...formData,
@@ -186,12 +227,16 @@ function CreateServer() {
 
   const handleRemoveImage = (toolIndex) => {
     const updatedTools = [...formData.tools]
-    updatedTools[toolIndex].output_image = {
-      s3_key: '',
-      s3_bucket: '',
-      filename: '',
-      preview: ''
+    updatedTools[toolIndex].output = {
+      output_type: 'image',
+      output_content: {
+        s3_key: '',
+        s3_bucket: ''
+      }
     }
+    // Clear UI-only fields
+    updatedTools[toolIndex]._ui_image_filename = ''
+    updatedTools[toolIndex]._ui_image_preview = ''
     
     setFormData({
       ...formData,
@@ -234,18 +279,15 @@ function CreateServer() {
         {
           name: '',
           description: '',
-          output_type: 'text',
-          output_text: '',
-          output_image: {
-            s3_key: '',
-            s3_bucket: '',
-            filename: '',
-            preview: ''
+          output: {
+            output_type: 'text',
+            output_content: {
+              text: ''
+            }
           },
-          output_custom: {
-            flow_type: '',
-            configuration: ''
-          },
+          // Temporary UI fields (not sent to backend)
+          _ui_image_preview: '',
+          _ui_image_filename: '',
           parameters: {}
         }
       ]
@@ -309,16 +351,13 @@ function CreateServer() {
         throw new Error('No authentication token available')
       }
 
-      // Clean up form data for submission (remove preview fields)
+      // Clean up form data for submission (remove UI-only fields)
       const cleanedFormData = {
         ...formData,
-        tools: formData.tools.map(tool => ({
-          ...tool,
-          output_image: tool.output_image ? {
-            s3_key: tool.output_image.s3_key,
-            s3_bucket: tool.output_image.s3_bucket
-          } : tool.output_image
-        }))
+        tools: formData.tools.map(tool => {
+          const { _ui_image_preview, _ui_image_filename, ...cleanTool } = tool
+          return cleanTool
+        })
       }
 
       const response = await fetch('https://app.mockmcp.com/servers', {
@@ -583,10 +622,10 @@ function CreateServer() {
                         <label className="block text-sm font-medium text-neutral-700">
                           Output Configuration *
                         </label>
-                        {tool.output_type === 'text' && (
+                        {tool.output.output_type === 'text' && (
                           <button
                             type="button"
-                            onClick={() => handleOutputTextChange(toolIndex, tool.output_text, true)}
+                            onClick={() => handleOutputTextChange(toolIndex, tool.output.output_content.text || '', true)}
                             className="btn-outline px-3 py-1 rounded text-xs font-medium flex items-center gap-1"
                             title="Format as JSON"
                           >
@@ -603,9 +642,9 @@ function CreateServer() {
                         <div className="flex border-b border-neutral-200">
                           <button
                             type="button"
-                            onClick={() => handleToolChange(toolIndex, 'output_type', 'text')}
+                            onClick={() => handleToolChange(toolIndex, 'output.output_type', 'text')}
                             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                              tool.output_type === 'text'
+                              tool.output.output_type === 'text'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-neutral-500 hover:text-neutral-700'
                             }`}
@@ -619,9 +658,9 @@ function CreateServer() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleToolChange(toolIndex, 'output_type', 'image')}
+                            onClick={() => handleToolChange(toolIndex, 'output.output_type', 'image')}
                             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                              tool.output_type === 'image'
+                              tool.output.output_type === 'image'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-neutral-500 hover:text-neutral-700'
                             }`}
@@ -635,9 +674,9 @@ function CreateServer() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleToolChange(toolIndex, 'output_type', 'custom')}
+                            onClick={() => handleToolChange(toolIndex, 'output.output_type', 'custom')}
                             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                              tool.output_type === 'custom'
+                              tool.output.output_type === 'custom'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-neutral-500 hover:text-neutral-700'
                             }`}
@@ -654,10 +693,10 @@ function CreateServer() {
 
                       {/* Tab Content */}
                       <div className="relative">
-                        {tool.output_type === 'text' && (
+                        {tool.output.output_type === 'text' && (
                           <>
                             <textarea
-                              value={tool.output_text}
+                              value={tool.output.output_content.text || ''}
                               onChange={(e) => handleOutputTextChange(toolIndex, e.target.value)}
                               onBlur={(e) => {
                                 // Auto-prettify JSON on blur if it's valid JSON but not formatted
@@ -678,9 +717,9 @@ function CreateServer() {
                               className="w-full h-[180px] px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm resize-none"
                               required
                             />
-                            {tool.output_text && (() => {
+                            {tool.output.output_content.text && (() => {
                               try {
-                                JSON.parse(tool.output_text)
+                                JSON.parse(tool.output.output_content.text)
                                 return (
                                   <div className="absolute top-2 right-2">
                                     <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded">
@@ -701,7 +740,7 @@ function CreateServer() {
                           </>
                         )}
 
-                        {tool.output_type === 'image' && (
+                        {tool.output.output_type === 'image' && (
                           <div className="space-y-4">
                             <div>
                               <label className="block text-sm font-medium text-neutral-700 mb-2">
@@ -709,7 +748,7 @@ function CreateServer() {
                               </label>
                               
                               {/* Show upload area if no image is uploaded and not uploading */}
-                              {!tool.output_image?.s3_key && !uploadingImages.has(toolIndex) && (
+                              {!tool.output.output_content.s3_key && !uploadingImages.has(toolIndex) && (
                                 <div className="flex items-center justify-center w-full">
                                   <label 
                                     htmlFor={`image-upload-${toolIndex}`}
@@ -747,14 +786,14 @@ function CreateServer() {
                               )}
 
                               {/* Show uploaded image preview */}
-                              {tool.output_image?.s3_key && !uploadingImages.has(toolIndex) && (
+                              {tool.output.output_content.s3_key && !uploadingImages.has(toolIndex) && (
                                 <div className="border-2 border-green-200 rounded-lg bg-green-50 p-4">
                                   <div className="flex items-start gap-4">
                                     {/* Image preview */}
                                     <div className="flex-shrink-0">
-                                      {tool.output_image.preview ? (
+                                      {tool._ui_image_preview ? (
                                         <img 
-                                          src={tool.output_image.preview} 
+                                          src={tool._ui_image_preview} 
                                           alt="Uploaded preview" 
                                           className="w-20 h-20 object-cover rounded border"
                                         />
@@ -776,9 +815,9 @@ function CreateServer() {
                                         <span className="text-sm text-green-800 font-medium">Image uploaded successfully</span>
                                       </div>
                                       
-                                      {tool.output_image.filename && (
+                                      {tool._ui_image_filename && (
                                         <p className="text-sm text-neutral-600 mb-3 truncate">
-                                          {tool.output_image.filename}
+                                          {tool._ui_image_filename}
                                         </p>
                                       )}
 
@@ -800,18 +839,15 @@ function CreateServer() {
                           </div>
                         )}
 
-                        {tool.output_type === 'custom' && (
+                        {tool.output.output_type === 'custom' && (
                           <div className="space-y-4">
                             <div>
                               <label className="block text-sm font-medium text-neutral-700 mb-2">
                                 Flow Type
                               </label>
                               <select
-                                value={tool.output_custom?.flow_type || ''}
-                                onChange={(e) => handleToolChange(toolIndex, 'output_custom', {
-                                  ...tool.output_custom,
-                                  flow_type: e.target.value
-                                })}
+                                value={tool.output.output_content?.flow_type || ''}
+                                onChange={(e) => handleToolChange(toolIndex, 'output.output_content.flow_type', e.target.value)}
                                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               >
                                 <option value="">Select flow type...</option>
@@ -826,11 +862,8 @@ function CreateServer() {
                                 Configuration
                               </label>
                               <textarea
-                                value={tool.output_custom?.configuration || ''}
-                                onChange={(e) => handleToolChange(toolIndex, 'output_custom', {
-                                  ...tool.output_custom,
-                                  configuration: e.target.value
-                                })}
+                                value={tool.output.output_content?.configuration || ''}
+                                onChange={(e) => handleToolChange(toolIndex, 'output.output_content.configuration', e.target.value)}
                                 placeholder="Enter configuration details..."
                                 rows={4}
                                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
