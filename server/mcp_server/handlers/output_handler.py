@@ -158,21 +158,28 @@ class OutputHandler:
     
     def _execute_javascript(self, js_code: str, parameters: Dict[str, Any]) -> Any:
         """
-        Execute JavaScript code securely with parameter substitution using DukPy
+        Execute JavaScript code securely with parameters as variables using DukPy
         
         Args:
             js_code: JavaScript code to execute
-            parameters: Parameters to substitute in the code
+            parameters: Parameters to make available as variables in the code
             
         Returns:
             Result of JavaScript execution (value of 'output' variable)
         """
         try:
-            # Substitute parameters in the JavaScript code
+            # Create variable declarations for parameters
+            param_declarations = self._create_parameter_variables(parameters)
+            
+            # Also substitute parameter placeholders for backward compatibility
             processed_code = self._substitute_parameters(js_code, parameters)
             
             # Add code to capture and return the output variable
             execution_code = f"""
+            // Parameter variables
+            {param_declarations}
+            
+            // User code
             {processed_code}
             
             // Return the output variable if it exists
@@ -245,3 +252,41 @@ class OutputHandler:
                 processed_code = processed_code.replace(placeholder, 'null')
         
         return processed_code
+    
+    def _create_parameter_variables(self, parameters: Dict[str, Any]) -> str:
+        """
+        Create JavaScript variable declarations from parameters
+        
+        Args:
+            parameters: Dictionary of parameter names and values
+            
+        Returns:
+            JavaScript code declaring variables for each parameter
+        """
+        if not parameters:
+            return ""
+        
+        variable_declarations = []
+        
+        for param_name, param_value in parameters.items():
+            # Create a safe variable name (replace spaces and special chars with underscores)
+            safe_var_name = re.sub(r'[^a-zA-Z0-9_]', '_', str(param_name))
+            
+            # Convert parameter value to JavaScript-compatible format
+            if isinstance(param_value, str):
+                # Escape quotes and wrap in quotes
+                escaped_value = param_value.replace('"', '\\"').replace("'", "\\'")
+                js_value = f'"{escaped_value}"'
+            elif isinstance(param_value, (int, float)):
+                js_value = str(param_value)
+            elif isinstance(param_value, bool):
+                js_value = 'true' if param_value else 'false'
+            elif param_value is None:
+                js_value = 'null'
+            else:
+                # Convert complex types to JSON
+                js_value = json.dumps(param_value)
+            
+            variable_declarations.append(f"var {safe_var_name} = {js_value};")
+        
+        return "\n".join(variable_declarations)

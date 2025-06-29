@@ -522,20 +522,19 @@ function CreateServer() {
       // Clean up form data for submission (remove UI-only fields)
       const cleanedFormData = {
         ...formData,
-        tools: formData.tools.map((tool, toolIndex) => {
+        tools: formData.tools.map(tool => {
           const { _ui_image_preview, _ui_image_filename, ...cleanTool } = tool
           
           // Special handling for custom_flow to ensure clean data
           if (cleanTool.output.output_type === 'custom_flow') {
-            // For now, convert back to the legacy format until backend is updated
-            const userCode = getUserCode(toolIndex) || '// Default code'
             return {
               ...cleanTool,
               output: {
-                output_type: 'custom', // Convert back to 'custom' for backend compatibility
+                ...cleanTool.output,
                 output_content: {
-                  flow_type: 'javascript',
-                  configuration: userCode // Send only the user's code portion
+                  language: cleanTool.output.output_content?.language || 'js',
+                  attachments: cleanTool.output.output_content?.attachments || [],
+                  code: cleanTool.output.output_content?.code || ''
                 }
               }
             }
@@ -558,23 +557,8 @@ function CreateServer() {
       })
 
       if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`
-        try {
-          const errorData = await response.json()
-          console.error('Server error response:', errorData)
-          errorMessage = errorData.message || errorData.error || errorMessage
-        } catch (parseError) {
-          console.error('Failed to parse error response:', parseError)
-          // If JSON parsing fails, try to get text
-          try {
-            const errorText = await response.text()
-            console.error('Error response text:', errorText)
-            errorMessage = errorText || errorMessage
-          } catch (textError) {
-            console.error('Failed to read error as text:', textError)
-          }
-        }
-        throw new Error(errorMessage)
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
       }
 
       const result = await response.json()
@@ -1151,13 +1135,7 @@ function CreateServer() {
                                         ) : (
                                           <div className="leading-6 text-neutral-500">// No parameters defined</div>
                                         )}
-                                        <div className="leading-6">
-                                          <span className="text-blue-400">var</span>{' '}
-                                          <span className="text-green-400">output</span>{' '}
-                                          <span className="text-white">=</span>{' '}
-                                          <span className="text-yellow-400">helloworld</span>
-                                          <span className="text-white">;</span>
-                                        </div>
+
                                         <div className="leading-6"></div>
                                         <div className="leading-6"></div>
                                       </div>
