@@ -45,6 +45,7 @@ function CreateServer() {
   const [uploadingImages, setUploadingImages] = useState(new Set())
   const [editingParameter, setEditingParameter] = useState(null) // { toolIndex, paramName }
   const [editingParameterName, setEditingParameterName] = useState('')
+  const [userCodes, setUserCodes] = useState({}) // Store user codes separately to avoid extraction on every render
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -99,14 +100,27 @@ function CreateServer() {
           newContent = { text: '' }
         } else if (value === 'image') {
           newContent = { s3_key: '', s3_bucket: '' }
-        } else if (value === 'custom') {
-          newContent = { flow_type: '', configuration: '' }
-        }
+                  } else if (value === 'custom') {
+            // Generate proper initial code structure
+            const parameters = Object.keys(formData.tools[index].parameters || {})
+            let initialCode = ''
+            if (parameters.length > 0) {
+              parameters.forEach((paramName, paramIndex) => {
+                initialCode += `var ${paramName} = {parameter ${paramIndex + 1}};\n`
+              })
+            } else {
+              initialCode = '// No parameters defined\n'
+            }
+            initialCode += 'var output = helloworld;\n\n'
+            initialCode += '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";\n\nreturn output;'
+            
+            newContent = { language: 'js', attachments: [], code: initialCode }
+          }
         
         updatedTools[index] = {
           ...updatedTools[index],
           output: {
-            output_type: value,
+            output_type: value === 'custom' ? 'custom_flow' : value,
             output_content: newContent
           }
         }
@@ -313,6 +327,16 @@ function CreateServer() {
       type: 'string',
       description: ''
     }
+    
+    // Update full code if this is a custom flow
+    if (updatedTools[toolIndex].output.output_type === 'custom_flow') {
+      const toolId = `tool_${toolIndex}`
+      const userCode = userCodes[toolId] || extractUserCode(updatedTools[toolIndex].output.output_content?.code, toolIndex)
+      const fullCode = generateFullCode(toolIndex, userCode)
+      updatedTools[toolIndex].output.output_content.code = fullCode
+      setUserCodes(prev => ({ ...prev, [toolId]: userCode }))
+    }
+    
     setFormData({
       ...formData,
       tools: updatedTools
@@ -322,6 +346,16 @@ function CreateServer() {
   const removeParameter = (toolIndex, paramName) => {
     const updatedTools = [...formData.tools]
     delete updatedTools[toolIndex].parameters[paramName]
+    
+    // Update full code if this is a custom flow
+    if (updatedTools[toolIndex].output.output_type === 'custom_flow') {
+      const toolId = `tool_${toolIndex}`
+      const userCode = userCodes[toolId] || extractUserCode(updatedTools[toolIndex].output.output_content?.code, toolIndex)
+      const fullCode = generateFullCode(toolIndex, userCode)
+      updatedTools[toolIndex].output.output_content.code = fullCode
+      setUserCodes(prev => ({ ...prev, [toolId]: userCode }))
+    }
+    
     setFormData({
       ...formData,
       tools: updatedTools
@@ -357,6 +391,15 @@ function CreateServer() {
       delete params[paramName]
       updatedTools[toolIndex].parameters = params
       
+      // Update full code if this is a custom flow
+      if (updatedTools[toolIndex].output.output_type === 'custom_flow') {
+        const toolId = `tool_${toolIndex}`
+        const userCode = userCodes[toolId] || extractUserCode(updatedTools[toolIndex].output.output_content?.code, toolIndex)
+        const fullCode = generateFullCode(toolIndex, userCode)
+        updatedTools[toolIndex].output.output_content.code = fullCode
+        setUserCodes(prev => ({ ...prev, [toolId]: userCode }))
+      }
+      
       setFormData({
         ...formData,
         tools: updatedTools
@@ -371,6 +414,84 @@ function CreateServer() {
   const cancelEditingParameter = () => {
     setEditingParameter(null)
     setEditingParameterName('')
+  }
+
+  const getUserCode = (toolIndex) => {
+    const toolId = `tool_${toolIndex}`
+    if (userCodes[toolId]) {
+      return userCodes[toolId]
+    }
+    
+    // If not in userCodes, extract it from the full code
+    const tool = formData.tools[toolIndex]
+    if (tool?.output?.output_type === 'custom_flow' && tool.output.output_content?.code) {
+      const extracted = extractUserCode(tool.output.output_content.code, toolIndex)
+      setUserCodes(prev => ({ ...prev, [toolId]: extracted }))
+      return extracted
+    }
+    
+    // Default fallback
+    const defaultCode = '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";'
+    setUserCodes(prev => ({ ...prev, [toolId]: defaultCode }))
+    return defaultCode
+  }
+
+  const updateUserCode = (toolIndex, newUserCode) => {
+    const toolId = `tool_${toolIndex}`
+    setUserCodes(prev => ({ ...prev, [toolId]: newUserCode }))
+    
+    // Generate and update full code
+    const fullCode = generateFullCode(toolIndex, newUserCode)
+    handleToolChange(toolIndex, 'output.output_content.code', fullCode)
+  }
+
+  const generateFullCode = (toolIndex, userCode) => {
+    const tool = formData.tools[toolIndex]
+    const parameters = Object.keys(tool.parameters || {})
+    
+    // Top section - parameter declarations
+    let topCode = ''
+    if (parameters.length > 0) {
+      parameters.forEach((paramName, index) => {
+        topCode += `var ${paramName} = {parameter ${index + 1}};\n`
+      })
+    } else {
+      topCode = '// No parameters defined\n'
+    }
+    topCode += 'var output = helloworld;\n\n'
+    
+    // Bottom section - return statement
+    const bottomCode = '\nreturn output;'
+    
+    return topCode + userCode + bottomCode
+  }
+
+  const extractUserCode = (fullCode, toolIndex) => {
+    if (!fullCode) return '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";'
+    
+    const tool = formData.tools[toolIndex]
+    const parameters = Object.keys(tool.parameters || {})
+    
+    // Calculate how many lines the top section takes  
+    const topLines = parameters.length > 0 ? parameters.length + 3 : 4
+    
+    // Split the full code into lines
+    const lines = fullCode.split('\n')
+    
+    // Safety check: ensure we have enough lines
+    if (lines.length <= topLines) {
+      return '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";'
+    }
+    
+    // Remove the top lines and the last line (return statement)
+    const userLines = lines.slice(topLines, -1)
+    
+    // If we get empty result, return default
+    if (userLines.length === 0 || userLines.join('\n').trim() === '') {
+      return '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";'
+    }
+    
+    return userLines.join('\n')
   }
 
   const handleSubmit = async (e) => {
@@ -780,7 +901,7 @@ function CreateServer() {
                             type="button"
                             onClick={() => handleToolChange(toolIndex, 'output.output_type', 'custom')}
                             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                              tool.output.output_type === 'custom'
+                              tool.output.output_type === 'custom_flow'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-neutral-500 hover:text-neutral-700'
                             }`}
@@ -946,7 +1067,7 @@ function CreateServer() {
                           </div>
                         )}
 
-                        {tool.output.output_type === 'custom' && (
+                        {tool.output.output_type === 'custom_flow' && (
                           <div className="space-y-4">
                             <div>
                               <label className="block text-sm font-medium text-neutral-700 mb-2">
@@ -975,7 +1096,9 @@ function CreateServer() {
                                           <div key={index} className="leading-6">{index + 1}</div>
                                         ))}
                                         {Object.keys(tool.parameters || {}).length === 0 && <div className="leading-6">1</div>}
+                                        <div className="leading-6">{(Object.keys(tool.parameters || {}).length || 0) + 1}</div>
                                         <div className="leading-6">{(Object.keys(tool.parameters || {}).length || 0) + 2}</div>
+                                        <div className="leading-6">{(Object.keys(tool.parameters || {}).length || 0) + 3}</div>
                                       </div>
                                       <div className="flex-1 font-mono text-neutral-300">
                                         {Object.keys(tool.parameters || {}).length > 0 ? (
@@ -993,6 +1116,14 @@ function CreateServer() {
                                         ) : (
                                           <div className="leading-6 text-neutral-500">// No parameters defined</div>
                                         )}
+                                        <div className="leading-6">
+                                          <span className="text-blue-400">var</span>{' '}
+                                          <span className="text-green-400">output</span>{' '}
+                                          <span className="text-white">=</span>{' '}
+                                          <span className="text-yellow-400">helloworld</span>
+                                          <span className="text-white">;</span>
+                                        </div>
+                                        <div className="leading-6"></div>
                                         <div className="leading-6"></div>
                                       </div>
                                     </div>
@@ -1001,8 +1132,8 @@ function CreateServer() {
                                   {/* Middle section - User editable code */}
                                   <div className="relative">
                                     <textarea
-                                      value={tool.output.output_content?.configuration || '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";'}
-                                      onChange={(e) => handleToolChange(toolIndex, 'output.output_content.configuration', e.target.value)}
+                                      value={getUserCode(toolIndex)}
+                                      onChange={(e) => updateUserCode(toolIndex, e.target.value)}
                                       placeholder="// Write your JavaScript code here..."
                                       className="w-full bg-neutral-900 text-neutral-100 font-mono text-sm leading-6 px-4 py-3 border-none resize-none focus:outline-none focus:ring-0"
                                       rows={12}
@@ -1013,12 +1144,19 @@ function CreateServer() {
                                         boxShadow: 'none',
                                         paddingLeft: '35px'
                                       }}
+                                      readOnly={false}
+                                      disabled={false}
                                     />
                                     {/* Line numbers for middle section */}
                                     <div className="absolute left-0 top-0 text-sm text-neutral-500 font-mono px-4 py-3 pointer-events-none select-none">
-                                      {Array.from({ length: (tool.output.output_content?.configuration || '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";').split('\n').length }, (_, i) => (
-                                        <div key={i} className="leading-6">{(Object.keys(tool.parameters || {}).length || 0) + 3 + i}</div>
-                                      ))}
+                                      {(() => {
+                                        const userCode = getUserCode(toolIndex)
+                                        const lineCount = userCode.split('\n').length
+                                        const startLine = (Object.keys(tool.parameters || {}).length || 0) + 4
+                                        return Array.from({ length: lineCount }, (_, i) => (
+                                          <div key={i} className="leading-6">{startLine + i}</div>
+                                        ))
+                                      })()}
                                     </div>
                                   </div>
 
@@ -1027,7 +1165,12 @@ function CreateServer() {
                                     <div className="flex text-sm">
                                       <div className="text-neutral-500 font-mono mr-4 select-none">
                                         <div className="leading-6">
-                                          {(Object.keys(tool.parameters || {}).length || 0) + 3 + (tool.output.output_content?.configuration || '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";').split('\n').length}
+                                          {(() => {
+                                            const userCode = getUserCode(toolIndex)
+                                            const userLineCount = userCode.split('\n').length
+                                            const startLine = (Object.keys(tool.parameters || {}).length || 0) + 4
+                                            return startLine + userLineCount
+                                          })()}
                                         </div>
                                       </div>
                                       <div className="flex-1 font-mono text-neutral-300">
