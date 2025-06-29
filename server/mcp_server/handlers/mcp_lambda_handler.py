@@ -16,12 +16,15 @@
 # 
 # Modifications Copyright (c) 2025 Shanaka Anuradha
 
-import functools
+"""
+MCP Lambda Handler for processing Model Context Protocol requests in AWS Lambda
+"""
+
 import inspect
 import json
 import logging
 
-from mcp_server.types import (
+from ..types import (
     Capabilities,
     ErrorContent,
     InitializeResult,
@@ -38,7 +41,6 @@ from typing import (
     Dict,
     List,
     Optional,
-    Union,
     get_args,
     get_origin,
     get_type_hints,
@@ -333,4 +335,4 @@ class MCPLambdaHandler:
 
         except Exception as e:
             logger.error(f'Error processing request: {str(e)}', exc_info=True)
-            return self._create_error_response(-32000, str(e), request_id)
+            return self._create_error_response(-32000, str(e), request_id) 

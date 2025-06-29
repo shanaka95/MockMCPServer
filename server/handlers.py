@@ -7,7 +7,7 @@ from constants import TokenType, HttpStatus, ErrorMessage
 from responses import error_response
 from auth import require_auth, require_session_match
 from utils import parse_json_body, log_request, format_error_log
-from mcp_server.mcp_server_handler import mcp_server_handler
+from mcp_server.handlers import mcp_server_handler, image_handler
 
 
 @require_auth(TokenType.COGNITO)
@@ -87,7 +87,7 @@ def handle_server_deletion(event: Dict[str, Any], context: Any, auth_context: Di
         log_request(event, auth_context)
         
         print(f"Deleting server for user: {user_id}, session: {session_id}")
-        return mcp_server_handler.delete_server(user_id, session_id)
+        return mcp_server_handler.delete_server(session_id, user_id)
         
     except Exception as e:
         error_msg = format_error_log(e, "Server deletion failed")
@@ -116,7 +116,7 @@ def handle_image_upload(event: Dict[str, Any], context: Any, auth_context: Dict[
         request_data = parse_json_body(event)
         
         print(f"Uploading image for user: {user_id}")
-        return mcp_server_handler.upload_image(request_data, user_id)
+        return image_handler.upload_image(request_data, user_id)
         
     except json.JSONDecodeError:
         print("Invalid JSON in image upload request")

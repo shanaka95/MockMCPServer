@@ -1,7 +1,7 @@
 """MCP Server package for AWS Lambda."""
 
-from .mcp_lambda_handler import MCPLambdaHandler
-from .session import DynamoDBSessionStore
+from .handlers.mcp_lambda_handler import MCPLambdaHandler
+from .services.database_service import DynamoDBSessionStore
 from .types import (
     JSONRPCRequest,
     JSONRPCResponse,
