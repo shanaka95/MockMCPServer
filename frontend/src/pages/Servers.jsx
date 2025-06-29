@@ -114,20 +114,48 @@ function Servers() {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      active: { color: 'emerald', text: 'Active', dot: true, description: 'Server is loaded and ready to use' },
-      idle: { color: 'amber', text: 'Idle', dot: false, description: 'Server is stored but not currently loaded' },
-      inactive: { color: 'neutral', text: 'Inactive', dot: false, description: 'Server is not responding' },
-      expired: { color: 'red', text: 'Expired', dot: false, description: 'Server has expired and needs renewal' }
+      active: { 
+        bgClass: 'bg-emerald-100', 
+        textClass: 'text-emerald-800', 
+        dotClass: 'bg-emerald-500',
+        text: 'Active', 
+        dot: true, 
+        description: 'Server is loaded and ready to use' 
+      },
+      idle: { 
+        bgClass: 'bg-amber-100', 
+        textClass: 'text-amber-800', 
+        dotClass: 'bg-amber-500',
+        text: 'Idle', 
+        dot: false, 
+        description: 'Server is stored but not currently loaded' 
+      },
+      inactive: { 
+        bgClass: 'bg-neutral-100', 
+        textClass: 'text-neutral-800', 
+        dotClass: 'bg-neutral-500',
+        text: 'Inactive', 
+        dot: false, 
+        description: 'Server is not responding' 
+      },
+      expired: { 
+        bgClass: 'bg-red-100', 
+        textClass: 'text-red-800', 
+        dotClass: 'bg-red-500',
+        text: 'Expired', 
+        dot: false, 
+        description: 'Server has expired and needs renewal' 
+      }
     }
     
     const config = statusConfig[status] || statusConfig.inactive
     
     return (
       <span 
-        className={`inline-flex items-center gap-1 bg-${config.color}-100 text-${config.color}-800 text-xs font-medium px-2.5 py-1 rounded-full`}
+        className={`inline-flex items-center gap-1 ${config.bgClass} ${config.textClass} text-xs font-medium px-2.5 py-1 rounded-full`}
         title={config.description}
       >
-        {config.dot && <div className={`w-2 h-2 bg-${config.color}-500 rounded-full pulse-dot`}></div>}
+        {config.dot && <div className={`w-2 h-2 ${config.dotClass} rounded-full pulse-dot`}></div>}
         {config.text}
       </span>
     )
