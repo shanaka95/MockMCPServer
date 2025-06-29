@@ -19,16 +19,16 @@ class RouteMap:
         """Initialize route mappings"""
         self.routes: Dict[Tuple[str, str, str], Callable] = {
             # Server management routes (require Cognito auth)
-            ('server', HttpMethod.POST, 'non_mcp'): handle_server_creation,
-            ('server', HttpMethod.GET, 'non_mcp'): handle_server_listing,
-            ('server', HttpMethod.DELETE, 'non_mcp'): handle_server_deletion,
+            ('servers', HttpMethod.POST, 'non_mcp'): handle_server_creation,
+            ('servers', HttpMethod.GET, 'non_mcp'): handle_server_listing,
+            ('servers', HttpMethod.DELETE, 'non_mcp'): handle_server_deletion,
             
             # Image upload route (require Cognito auth)
-            ('upload-image', HttpMethod.POST, 'non_mcp'): handle_image_upload,
+            ('images', HttpMethod.POST, 'non_mcp'): handle_image_upload,
             
             # MCP server access routes (require M2M auth)
-            ('server', HttpMethod.GET, 'mcp'): handle_mcp_server_access,
-            ('server', HttpMethod.POST, 'mcp'): handle_mcp_server_access,
+            ('servers', HttpMethod.GET, 'mcp'): handle_mcp_server_access,
+            ('servers', HttpMethod.POST, 'mcp'): handle_mcp_server_access,
         }
     
     def get_handler(self, resource: str, method: str, is_mcp: bool) -> Optional[Callable]:
@@ -36,7 +36,7 @@ class RouteMap:
         Get the appropriate handler for the given route
         
         Args:
-            resource: Resource name (e.g., 'server', 'upload-image')
+            resource: Resource name (e.g., 'servers', 'images')
             method: HTTP method
             is_mcp: Whether this is an MCP protocol request
             

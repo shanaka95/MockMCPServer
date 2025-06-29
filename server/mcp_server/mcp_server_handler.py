@@ -435,7 +435,7 @@ class MCPServerHandler:
                         'description': validated_request.description,
                         'tools_count': len(validated_request.tools),
                         'created_at': server_data['created_at'],
-                        'url': f'https://app.mockmcp.com/server/{session_id}/mcp'
+                        'url': f'https://app.mockmcp.com/servers/{session_id}/mcp'
                     },
                     'authentication': {
                         'type': 'Bearer',

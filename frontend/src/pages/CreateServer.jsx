@@ -138,7 +138,7 @@ function CreateServer() {
       }
 
       // Upload to backend
-      const response = await fetch('https://app.mockmcp.com/upload-image', {
+      const response = await fetch('https://app.mockmcp.com/images', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -321,7 +321,7 @@ function CreateServer() {
         }))
       }
 
-      const response = await fetch('https://app.mockmcp.com/server', {
+      const response = await fetch('https://app.mockmcp.com/servers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

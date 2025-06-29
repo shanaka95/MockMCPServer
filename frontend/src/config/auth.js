@@ -46,7 +46,7 @@ export const cognitoConfig = amplifyConfig.Auth.Cognito;
 // API Configuration
 export const apiConfig = {
   // API Gateway endpoint for MCP server
-  mcpApiEndpoint: 'https://2m6gy0dpe3.execute-api.eu-central-1.amazonaws.com/Prod',
+  mcpApiEndpoint: 'https://app.mockmcp.com',
   
   // Custom domain API endpoint
   customDomainEndpoint: 'https://www.mockmcp.com',

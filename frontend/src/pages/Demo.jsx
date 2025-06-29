@@ -10,7 +10,7 @@ function Demo() {
   const demoServer = {
     name: "demo-server",
     type: "streamable-http",
-    url: "https://app.mockmcp.com/server/bFuE4mmKgQuZ/mcp",
+    url: "https://app.mockmcp.com/servers/bFuE4mmKgQuZ/mcp",
     note: "For Streamable HTTP connections, add this URL and Authorization header to your MCP Client",
     description: "Returns the real-time status of mockmcp.com",
     token: "mcp_m2m_cD7a3xLePmDgzZvh4ZxAMu3M0pc3EA4lfg3PkeSKO2Q_ad5f6e301782e62f"

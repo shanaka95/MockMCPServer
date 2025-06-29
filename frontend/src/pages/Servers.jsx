@@ -30,7 +30,7 @@ function Servers() {
       setLoading(true)
       const token = await getAccessToken()
       
-      const response = await fetch(`${apiConfig.mcpApiEndpoint}/server`, {
+      const response = await fetch(`${apiConfig.mcpApiEndpoint}/servers`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -75,7 +75,7 @@ function Servers() {
         mcpServers: {
           [server.name]: {
             type: "streamable-http",
-            url: `${apiConfig.mcpApiEndpoint}/server/${server.session_id}/mcp`,
+            url: `${apiConfig.mcpApiEndpoint}/servers/${server.session_id}/mcp`,
             headers: {
               Authorization: `Bearer ${server.m2m_token}`
             },
@@ -92,7 +92,7 @@ function Servers() {
         mcpServers: {
           [server.name]: {
             type: "streamable-http", 
-            url: `${apiConfig.mcpApiEndpoint}/server/${server.session_id}/mcp`,
+            url: `${apiConfig.mcpApiEndpoint}/servers/${server.session_id}/mcp`,
             note: "Warning: Unable to generate configuration with authentication header."
           }
         }
@@ -312,10 +312,10 @@ function Servers() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 bg-neutral-100 px-2 py-1 rounded">
                             <code className="text-sm text-neutral-700 flex-1 break-all">
-                              {`https://app.mockmcp.com/server/${server.session_id}/mcp`}
+                              {`https://app.mockmcp.com/servers/${server.session_id}/mcp`}
                             </code>
                             <button 
-                              onClick={() => copyToClipboard(`https://app.mockmcp.com/server/${server.session_id}/mcp`, server.session_id, 'url')}
+                              onClick={() => copyToClipboard(`https://app.mockmcp.com/servers/${server.session_id}/mcp`, server.session_id, 'url')}
                               className="text-neutral-500 hover:text-neutral-700 p-1 rounded"
                               title="Copy URL"
                             >
@@ -382,7 +382,7 @@ function Servers() {
                     
                     <div className="flex flex-col sm:flex-row gap-3">
                       <button 
-                        onClick={() => copyToClipboard(`https://app.mockmcp.com/server/${server.session_id}/mcp`, server.session_id, 'url')}
+                        onClick={() => copyToClipboard(`https://app.mockmcp.com/servers/${server.session_id}/mcp`, server.session_id, 'url')}
                         className="btn-primary px-6 py-3 rounded-xl font-semibold inline-flex items-center justify-center gap-2 group"
                       >
                         {copiedStates[`${server.session_id}-url`] ? (
