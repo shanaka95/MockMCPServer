@@ -38,7 +38,8 @@ class ServerService:
         m2m_token = TokenGenerator.generate_m2m_token(session_id, user_id)
         
         # Create tool functions from validated request
-        tool_functions = ToolFactory.create_tool_functions(request.tools)
+        tool_factory = ToolFactory()
+        tool_functions = tool_factory.create_tool_functions(request.tools)
         
         # Create MCPLambdaHandler instance with the tools
         mcp_handler = MCPLambdaHandler(

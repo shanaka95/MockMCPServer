@@ -312,7 +312,7 @@ class MCPLambdaHandler:
                             converted_args[arg_name] = arg_value
 
                     result = tool_func(**converted_args)
-                    content = self.output_handler.process_output(result)
+                    content = self.output_handler.process_output(result, converted_args)
                     print(f'Content: {content}')
                     return self._create_success_response(
                         {'content': content}, request.id

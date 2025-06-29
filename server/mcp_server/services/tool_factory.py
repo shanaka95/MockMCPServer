@@ -11,8 +11,11 @@ from ..constants import PARAMETER_TYPE_MAPPING
 class ToolFactory:
     """Factory class for creating dynamic tool functions"""
     
-    @staticmethod
-    def create_tool_functions(tools: List[ToolDefinition]) -> List[Callable]:
+    def __init__(self):
+        """Initialize the tool factory"""
+        pass
+    
+    def create_tool_functions(self, tools: List[ToolDefinition]) -> List[Callable]:
         """
         Create callable functions from tool definitions
         
@@ -25,13 +28,12 @@ class ToolFactory:
         tool_functions = []
         
         for tool in tools:
-            tool_function = ToolFactory._create_single_tool_function(tool)
+            tool_function = self._create_single_tool_function(tool)
             tool_functions.append(tool_function)
         
         return tool_functions
     
-    @staticmethod
-    def _create_single_tool_function(tool_def: ToolDefinition) -> Callable:
+    def _create_single_tool_function(self, tool_def: ToolDefinition) -> Callable:
         """
         Create a single tool function from a tool definition
         
@@ -43,40 +45,39 @@ class ToolFactory:
         """
         def tool_function(**kwargs) -> str:
             """Dynamically generated tool function"""
-            return ToolFactory._execute_tool_logic(tool_def, kwargs)
+            return self._execute_tool_logic(tool_def, kwargs)
         
         # Set function metadata for MCP processing
-        ToolFactory._set_function_metadata(tool_function, tool_def)
+        self._set_function_metadata(tool_function, tool_def)
         
         return tool_function
     
-    @staticmethod
-    def _execute_tool_logic(tool_def: ToolDefinition, kwargs: dict) -> str:
+    def _execute_tool_logic(self, tool_def: ToolDefinition, kwargs: dict) -> str:
         """
         Execute the tool logic based on output type
         
         Args:
             tool_def: Tool definition
-            kwargs: Function arguments (unused in current implementation)
+            kwargs: Function arguments passed to the tool
             
         Returns:
-            Tool execution result as string
+            Raw tool execution result for processing by MCPLambdaHandler
         """
-        # Handle different output types using new unified structure
+        # Handle different output types - return raw data for MCPLambdaHandler to process
         output_type = tool_def.output.output_type
         output_content = tool_def.output.output_content
         
         if output_type == 'text':
             return output_content.get('text', '')
         elif output_type == 'image':
-            # Return image information as JSON
+            # Return raw image information as JSON for MCPLambdaHandler output processing
             return json.dumps({
                 "type": "image",
                 "s3_key": output_content.get('s3_key', ''),
                 "s3_bucket": output_content.get('s3_bucket', '')
             })
         elif output_type == 'custom':
-            # Return custom flow information as JSON
+            # Return raw custom flow information as JSON for MCPLambdaHandler output processing
             return json.dumps({
                 "type": "custom_flow",
                 "flow_type": output_content.get('flow_type', ''),
