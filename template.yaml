@@ -25,7 +25,7 @@ Resources:
       Cors:
         AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Accept'"
-        AllowOrigin: "'https://www.mockmcp.com,http://localhost:3000'"
+        AllowOrigin: "'https://mockmcp.com,https://www.mockmcp.com,http://localhost:3000'"
         MaxAge: "'600'"
         AllowCredentials: true
       Auth:
@@ -292,9 +292,11 @@ Resources:
         - openid
         - profile
       CallbackURLs:
+        - "https://mockmcp.com/login/callback"
         - "https://www.mockmcp.com/login/callback"
         - "http://localhost:3000/login/callback"
       LogoutURLs:
+        - "https://mockmcp.com/logout"
         - "https://www.mockmcp.com/logout"
         - "http://localhost:3000/logout"
       # Security
