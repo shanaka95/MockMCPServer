@@ -522,11 +522,31 @@ function CreateServer() {
       // Clean up form data for submission (remove UI-only fields)
       const cleanedFormData = {
         ...formData,
-        tools: formData.tools.map(tool => {
+        tools: formData.tools.map((tool, toolIndex) => {
           const { _ui_image_preview, _ui_image_filename, ...cleanTool } = tool
+          
+          // Special handling for custom_flow to ensure clean data
+          if (cleanTool.output.output_type === 'custom_flow') {
+            // For now, convert back to the legacy format until backend is updated
+            const userCode = getUserCode(toolIndex) || '// Default code'
+            return {
+              ...cleanTool,
+              output: {
+                output_type: 'custom', // Convert back to 'custom' for backend compatibility
+                output_content: {
+                  flow_type: 'javascript',
+                  configuration: userCode // Send only the user's code portion
+                }
+              }
+            }
+          }
+          
           return cleanTool
         })
       }
+
+      // Debug log the data being sent
+      console.log('Sending form data:', JSON.stringify(cleanedFormData, null, 2))
 
       const response = await fetch('https://app.mockmcp.com/servers', {
         method: 'POST',
@@ -538,8 +558,23 @@ function CreateServer() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+        let errorMessage = `HTTP error! status: ${response.status}`
+        try {
+          const errorData = await response.json()
+          console.error('Server error response:', errorData)
+          errorMessage = errorData.message || errorData.error || errorMessage
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError)
+          // If JSON parsing fails, try to get text
+          try {
+            const errorText = await response.text()
+            console.error('Error response text:', errorText)
+            errorMessage = errorText || errorMessage
+          } catch (textError) {
+            console.error('Failed to read error as text:', textError)
+          }
+        }
+        throw new Error(errorMessage)
       }
 
       const result = await response.json()
