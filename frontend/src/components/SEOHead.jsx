@@ -69,7 +69,7 @@ function SEOHead({
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link rel="dns-prefetch" href="https://mockmcp.com" />
       
-      {/* Security and Privacy - Note: Security headers are now set by server via _redirects file */}
+              {/* Security and Privacy - Note: Security headers are now set by Amplify console */}
       <meta name="referrer" content="strict-origin-when-cross-origin" />
       
       {/* Mobile and Accessibility */}
