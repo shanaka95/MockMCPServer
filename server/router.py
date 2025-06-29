@@ -68,6 +68,25 @@ def router(event, context):
             # Handle MCP server creation request
             return mcp_server_handler.create_server(request_data, user_id)
             
+        elif resource == 'upload-image' and event.get('httpMethod') == 'POST':
+            # Only allow Cognito authenticated users to upload images
+            if token_type != 'cognito':
+                return {
+                    'statusCode': 403,
+                    'body': json.dumps({
+                        'error': 'Image upload requires user authentication'
+                    }),
+                    'headers': {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            
+            # Extract and validate request data
+            request_data = json.loads(event.get('body', '{}'))
+            print(f"Uploading image for user: {user_id}")
+            # Handle image upload request
+            return mcp_server_handler.upload_image(request_data, user_id)
+            
         elif resource == 'server' and protocol != 'mcp' and event.get('httpMethod') == 'GET':
             # Only allow Cognito authenticated users to list their servers
             if token_type != 'cognito':

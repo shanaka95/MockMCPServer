@@ -23,8 +23,10 @@ function CreateServer() {
           "server": "MockMCP"
         }, null, 2),
         output_image: {
-          url: '',
-          alt_text: ''
+          s3_key: '',
+          s3_bucket: '',
+          filename: '',
+          preview: ''
         },
         output_custom: {
           flow_type: '',
@@ -43,6 +45,7 @@ function CreateServer() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [uploadingImages, setUploadingImages] = useState(new Set())
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -115,6 +118,102 @@ function CreateServer() {
     handleToolChange(toolIndex, 'output_text', finalValue)
   }
 
+  const handleImageUpload = async (toolIndex, file) => {
+    if (!file) return
+
+    // Add this tool to uploading set
+    setUploadingImages(prev => new Set([...prev, toolIndex]))
+    setError('') // Clear any previous errors
+
+    try {
+      // Convert file to base64
+      const base64 = await fileToBase64(file)
+      
+      // Get authentication token
+      const session = await fetchAuthSession()
+      const token = session.tokens?.idToken?.toString()
+
+      if (!token) {
+        throw new Error('No authentication token available')
+      }
+
+      // Upload to backend
+      const response = await fetch('https://app.mockmcp.com/upload-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          image_data: base64,
+          filename: file.name
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      
+      // Update the form data with the uploaded image S3 key
+      const updatedTools = [...formData.tools]
+      updatedTools[toolIndex].output_image = {
+        s3_key: result.key,
+        s3_bucket: result.bucket,
+        filename: file.name,
+        preview: base64 // Store base64 for preview
+      }
+      
+      setFormData({
+        ...formData,
+        tools: updatedTools
+      })
+
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      setError(`Failed to upload image: ${error.message}`)
+    } finally {
+      // Remove this tool from uploading set
+      setUploadingImages(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(toolIndex)
+        return newSet
+      })
+    }
+  }
+
+  const handleRemoveImage = (toolIndex) => {
+    const updatedTools = [...formData.tools]
+    updatedTools[toolIndex].output_image = {
+      s3_key: '',
+      s3_bucket: '',
+      filename: '',
+      preview: ''
+    }
+    
+    setFormData({
+      ...formData,
+      tools: updatedTools
+    })
+
+    // Reset the file input
+    const fileInput = document.getElementById(`image-upload-${toolIndex}`)
+    if (fileInput) {
+      fileInput.value = ''
+    }
+  }
+
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = error => reject(error)
+    })
+  }
+
   const handleParameterChange = (toolIndex, paramName, field, value) => {
     const updatedTools = [...formData.tools]
     updatedTools[toolIndex].parameters[paramName] = {
@@ -138,8 +237,10 @@ function CreateServer() {
           output_type: 'text',
           output_text: '',
           output_image: {
-            url: '',
-            alt_text: ''
+            s3_key: '',
+            s3_bucket: '',
+            filename: '',
+            preview: ''
           },
           output_custom: {
             flow_type: '',
@@ -208,13 +309,25 @@ function CreateServer() {
         throw new Error('No authentication token available')
       }
 
+      // Clean up form data for submission (remove preview fields)
+      const cleanedFormData = {
+        ...formData,
+        tools: formData.tools.map(tool => ({
+          ...tool,
+          output_image: tool.output_image ? {
+            s3_key: tool.output_image.s3_key,
+            s3_bucket: tool.output_image.s3_bucket
+          } : tool.output_image
+        }))
+      }
+
       const response = await fetch('https://app.mockmcp.com/server', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(cleanedFormData)
       })
 
       if (!response.ok) {
@@ -592,41 +705,97 @@ function CreateServer() {
                           <div className="space-y-4">
                             <div>
                               <label className="block text-sm font-medium text-neutral-700 mb-2">
-                                Image URL
+                                Upload Image
                               </label>
-                              <input
-                                type="url"
-                                value={tool.output_image?.url || ''}
-                                onChange={(e) => handleToolChange(toolIndex, 'output_image', {
-                                  ...tool.output_image,
-                                  url: e.target.value
-                                })}
-                                placeholder="https://example.com/image.jpg"
-                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                                Alt Text
-                              </label>
-                              <input
-                                type="text"
-                                value={tool.output_image?.alt_text || ''}
-                                onChange={(e) => handleToolChange(toolIndex, 'output_image', {
-                                  ...tool.output_image,
-                                  alt_text: e.target.value
-                                })}
-                                placeholder="Description of the image"
-                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              />
-                            </div>
-                            <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-                              <div className="flex items-center gap-2 text-sm text-neutral-600">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Image functionality will be implemented in a future update
-                              </div>
+                              
+                              {/* Show upload area if no image is uploaded and not uploading */}
+                              {!tool.output_image?.s3_key && !uploadingImages.has(toolIndex) && (
+                                <div className="flex items-center justify-center w-full">
+                                  <label 
+                                    htmlFor={`image-upload-${toolIndex}`}
+                                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-neutral-300 rounded-lg cursor-pointer bg-neutral-50 hover:bg-neutral-100 transition-colors"
+                                  >
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                      <svg className="w-8 h-8 mb-4 text-neutral-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                                      </svg>
+                                      <p className="mb-2 text-sm text-neutral-500">
+                                        <span className="font-semibold">Click to upload</span> or drag and drop
+                                      </p>
+                                      <p className="text-xs text-neutral-500">PNG, JPG or GIF (MAX. 10MB)</p>
+                                    </div>
+                                    <input 
+                                      id={`image-upload-${toolIndex}`}
+                                      type="file" 
+                                      className="hidden" 
+                                      accept="image/*"
+                                      onChange={(e) => handleImageUpload(toolIndex, e.target.files[0])}
+                                    />
+                                  </label>
+                                </div>
+                              )}
+
+                              {/* Show uploading state */}
+                              {uploadingImages.has(toolIndex) && (
+                                <div className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+                                  <p className="mb-2 text-sm text-blue-600 font-medium">
+                                    Uploading image...
+                                  </p>
+                                  <p className="text-xs text-blue-500">Please wait</p>
+                                </div>
+                              )}
+
+                              {/* Show uploaded image preview */}
+                              {tool.output_image?.s3_key && !uploadingImages.has(toolIndex) && (
+                                <div className="border-2 border-green-200 rounded-lg bg-green-50 p-4">
+                                  <div className="flex items-start gap-4">
+                                    {/* Image preview */}
+                                    <div className="flex-shrink-0">
+                                      {tool.output_image.preview ? (
+                                        <img 
+                                          src={tool.output_image.preview} 
+                                          alt="Uploaded preview" 
+                                          className="w-20 h-20 object-cover rounded border"
+                                        />
+                                      ) : (
+                                        <div className="w-20 h-20 bg-neutral-200 rounded border flex items-center justify-center">
+                                          <svg className="w-8 h-8 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                          </svg>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Image info and actions */}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span className="text-sm text-green-800 font-medium">Image uploaded successfully</span>
+                                      </div>
+                                      
+                                      {tool.output_image.filename && (
+                                        <p className="text-sm text-neutral-600 mb-3 truncate">
+                                          {tool.output_image.filename}
+                                        </p>
+                                      )}
+
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveImage(toolIndex)}
+                                        className="inline-flex items-center gap-1 text-sm text-red-600 hover:text-red-800 font-medium"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Remove image
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
@@ -718,13 +887,18 @@ function CreateServer() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || uploadingImages.size > 0}
                   className="btn-success px-6 py-3 rounded-lg font-medium inline-flex items-center gap-2"
                 >
                   {isSubmitting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                       Creating...
+                    </>
+                  ) : uploadingImages.size > 0 ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Uploading images...
                     </>
                   ) : (
                     <>

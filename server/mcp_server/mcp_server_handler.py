@@ -8,7 +8,11 @@ import time
 import os
 import secrets
 import hashlib
+import base64
+import uuid
 from decimal import Decimal
+import boto3
+from botocore.exceptions import ClientError
 from pydantic import BaseModel, Field, ValidationError, validator
 from mcp_server.session import DynamoDBSessionStore
 from mcp_server import MCPLambdaHandler
@@ -20,12 +24,51 @@ class ParameterDefinition(BaseModel):
     description: str = Field(..., min_length=1, description="Parameter description")
 
 
+class ImageOutput(BaseModel):
+    """Model for image output configuration"""
+    s3_key: str = Field(..., description="S3 key for the image")
+    s3_bucket: str = Field("", description="S3 bucket name")
+
+
+class CustomOutput(BaseModel):
+    """Model for custom flow output configuration"""
+    flow_type: str = Field("", description="Type of custom flow")
+    configuration: str = Field("", description="Custom flow configuration")
+
+
 class ToolDefinition(BaseModel):
     """Model for individual tool definitions"""
     name: str = Field(..., min_length=1, description="Tool name")
     description: str = Field(..., min_length=1, description="Tool description")
-    output_text: str = Field(..., description="Expected output text")
+    output_type: str = Field(default="text", description="Output type: text, image, or custom")
+    output_text: str = Field("", description="Expected output text")
+    output_image: Optional[ImageOutput] = Field(None, description="Image output configuration")
+    output_custom: Optional[CustomOutput] = Field(None, description="Custom flow output configuration")
     parameters: Dict[str, ParameterDefinition] = Field(..., description="Tool parameters")
+    
+    @validator('output_type')
+    def validate_output_type(cls, v):
+        """Validate output type is one of the allowed values"""
+        allowed_types = ['text', 'image', 'custom']
+        if v not in allowed_types:
+            raise ValueError(f'output_type must be one of: {", ".join(allowed_types)}')
+        return v
+    
+    @validator('output_image', always=True)
+    def validate_image_output(cls, v, values):
+        """Validate that image output is provided when output_type is image"""
+        output_type = values.get('output_type')
+        if output_type == 'image' and (not v or not v.s3_key):
+            raise ValueError('Image S3 key is required when output_type is "image"')
+        return v
+    
+    @validator('output_text', always=True)
+    def validate_text_output(cls, v, values):
+        """Validate that text output is provided when output_type is text"""
+        output_type = values.get('output_type')
+        if output_type == 'text' and not v:
+            raise ValueError('Output text is required when output_type is "text"')
+        return v
 
 
 class MCPServerRequest(BaseModel):
@@ -74,6 +117,75 @@ class MCPServerHandler:
         
         # In-memory storage for MCPLambdaHandler instances
         self.active_handlers: Dict[str, MCPLambdaHandler] = {}
+        
+        # Initialize S3 client
+        self.s3_client = boto3.client('s3')
+        self.s3_bucket = os.environ.get('MOCKMCP_S3_BUCKET', 'mockmcp-images')
+        
+        # Ensure S3 bucket exists
+        self._ensure_s3_bucket_exists()
+
+    def _ensure_s3_bucket_exists(self):
+        """Ensure the S3 bucket exists, create if it doesn't"""
+        try:
+            self.s3_client.head_bucket(Bucket=self.s3_bucket)
+        except ClientError as e:
+            error_code = int(e.response['Error']['Code'])
+            if error_code == 404:
+                # Bucket doesn't exist, create it
+                try:
+                    self.s3_client.create_bucket(Bucket=self.s3_bucket)
+                    print(f"Created S3 bucket: {self.s3_bucket}")
+                except ClientError as create_error:
+                    print(f"Failed to create S3 bucket: {create_error}")
+            else:
+                print(f"Error checking S3 bucket: {e}")
+
+    def upload_image_to_s3(self, image_data: str, filename: str = None) -> str:
+        """
+        Upload base64 encoded image data to S3
+        
+        Args:
+            image_data: Base64 encoded image data
+            filename: Optional filename, will generate one if not provided
+            
+        Returns:
+            str: S3 URL of the uploaded image
+        """
+        try:
+            # Decode base64 image data
+            if image_data.startswith('data:'):
+                # Remove data:image/jpeg;base64, prefix if present
+                header, encoded = image_data.split(',', 1)
+                image_bytes = base64.b64decode(encoded)
+                
+                # Extract content type from header
+                content_type = header.split(';')[0].split(':')[1]
+                file_extension = content_type.split('/')[1]
+            else:
+                # Assume it's already base64 encoded
+                image_bytes = base64.b64decode(image_data)
+                content_type = 'image/jpeg'
+                file_extension = 'jpg'
+            
+            # Generate filename if not provided
+            if not filename:
+                filename = f"{uuid.uuid4().hex}.{file_extension}"
+            
+            # Upload to S3
+            key = f"tool-images/{filename}"
+            self.s3_client.put_object(
+                Bucket=self.s3_bucket,
+                Key=key,
+                Body=image_bytes,
+                ContentType=content_type
+            )
+            
+            # Return S3 key (not public URL since files are private)
+            return key
+            
+        except Exception as e:
+            raise Exception(f"Failed to upload image to S3: {str(e)}")
 
     def _create_tool_functions(self, tools: List[ToolDefinition]) -> List[Callable]:
         """
@@ -94,9 +206,26 @@ class MCPServerHandler:
                     """
                     Dynamically generated tool function
                     """
-                    # For now, return the predefined output_text
-                    # In a real implementation, this would execute the actual tool logic
-                    return tool_def.output_text
+                    # Handle different output types
+                    if tool_def.output_type == 'text':
+                        return tool_def.output_text
+                    elif tool_def.output_type == 'image' and tool_def.output_image:
+                        # Return image information as JSON
+                        return json.dumps({
+                            "type": "image",
+                            "s3_key": tool_def.output_image.s3_key,
+                            "s3_bucket": tool_def.output_image.s3_bucket
+                        })
+                    elif tool_def.output_type == 'custom' and tool_def.output_custom:
+                        # Return custom flow information as JSON
+                        return json.dumps({
+                            "type": "custom_flow",
+                            "flow_type": tool_def.output_custom.flow_type,
+                            "configuration": tool_def.output_custom.configuration
+                        })
+                    else:
+                        # Fallback to text output
+                        return tool_def.output_text
                 
                 # Set function metadata for MCP processing
                 tool_function.__name__ = tool_def.name
@@ -198,6 +327,65 @@ class MCPServerHandler:
         }
 
         return server_data, mcp_handler
+
+    def upload_image(self, request_data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
+        """
+        Handle image upload request
+        
+        Args:
+            request_data: Request data containing base64 encoded image
+            user_id: ID of the authenticated user uploading the image
+            
+        Returns:
+            Dict containing response with status code and body
+        """
+        try:
+            # Validate required fields
+            if 'image_data' not in request_data:
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({
+                        'error': 'Missing image_data field'
+                    }),
+                    'headers': {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            
+            image_data = request_data['image_data']
+            filename = request_data.get('filename')
+            
+            # Upload image to S3
+            s3_key = self.upload_image_to_s3(image_data, filename)
+            
+            return {
+                'statusCode': 200,
+                'body': json.dumps({
+                    'message': 'Image uploaded successfully',
+                    'key': s3_key,
+                    'bucket': self.s3_bucket
+                }),
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                    'Access-Control-Allow-Methods': 'POST,OPTIONS'
+                }
+            }
+            
+        except Exception as e:
+            return {
+                'statusCode': 500,
+                'body': json.dumps({
+                    'error': f'Image upload failed: {str(e)}'
+                }),
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                    'Access-Control-Allow-Methods': 'POST,OPTIONS'
+                }
+            }
 
     def create_server(self, request_data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
         """
