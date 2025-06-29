@@ -43,6 +43,8 @@ function CreateServer() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [uploadingImages, setUploadingImages] = useState(new Set())
+  const [editingParameter, setEditingParameter] = useState(null) // { toolIndex, paramName }
+  const [editingParameterName, setEditingParameterName] = useState('')
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -326,6 +328,51 @@ function CreateServer() {
     })
   }
 
+  const startEditingParameter = (toolIndex, paramName) => {
+    setEditingParameter({ toolIndex, paramName })
+    setEditingParameterName(paramName)
+  }
+
+  const saveParameterName = () => {
+    if (!editingParameter || !editingParameterName.trim()) return
+    
+    const { toolIndex, paramName } = editingParameter
+    const newName = editingParameterName.trim()
+    
+    // Check if the new name already exists
+    if (newName !== paramName && formData.tools[toolIndex].parameters[newName]) {
+      setError('Parameter name already exists')
+      return
+    }
+    
+    // Update the parameter name
+    const updatedTools = [...formData.tools]
+    const params = { ...updatedTools[toolIndex].parameters }
+    
+    // Only update if the name actually changed
+    if (newName !== paramName) {
+      // Copy the parameter config to the new name
+      params[newName] = params[paramName]
+      // Delete the old parameter
+      delete params[paramName]
+      updatedTools[toolIndex].parameters = params
+      
+      setFormData({
+        ...formData,
+        tools: updatedTools
+      })
+    }
+    
+    setEditingParameter(null)
+    setEditingParameterName('')
+    setError('')
+  }
+
+  const cancelEditingParameter = () => {
+    setEditingParameter(null)
+    setEditingParameterName('')
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     
@@ -568,16 +615,73 @@ function CreateServer() {
                       {Object.entries(tool.parameters || {}).map(([paramName, paramConfig]) => (
                         <div key={paramName} className="bg-neutral-50 p-4 rounded-lg space-y-3">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-neutral-700">
-                              Parameter: {paramName}
-                            </span>
+                            <div className="flex items-center gap-2 flex-1">
+                              {editingParameter?.toolIndex === toolIndex && editingParameter?.paramName === paramName ? (
+                                <div className="flex items-center gap-2 flex-1">
+                                  <span className="text-sm font-medium text-neutral-700">
+                                    Parameter:
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={editingParameterName}
+                                    onChange={(e) => setEditingParameterName(e.target.value)}
+                                    className="px-2 py-1 text-sm border border-neutral-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        saveParameterName()
+                                      } else if (e.key === 'Escape') {
+                                        cancelEditingParameter()
+                                      }
+                                    }}
+                                    autoFocus
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={saveParameterName}
+                                    className="text-green-600 hover:text-green-800 p-1"
+                                    title="Save"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={cancelEditingParameter}
+                                    className="text-neutral-600 hover:text-neutral-800 p-1"
+                                    title="Cancel"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-neutral-700">
+                                    Parameter: {paramName}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => startEditingParameter(toolIndex, paramName)}
+                                    className="text-neutral-500 hover:text-neutral-700 p-1"
+                                    title="Edit parameter name"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                             <button
                               type="button"
                               onClick={() => removeParameter(toolIndex, paramName)}
                               className="text-red-600 hover:text-red-800 p-1"
+                              title="Remove parameter"
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
                             </button>
                           </div>
@@ -686,6 +790,9 @@ function CreateServer() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
                               </svg>
                               Custom Flow
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border border-orange-200">
+                                Beta
+                              </span>
                             </div>
                           </button>
                         </div>
@@ -843,38 +950,109 @@ function CreateServer() {
                           <div className="space-y-4">
                             <div>
                               <label className="block text-sm font-medium text-neutral-700 mb-2">
-                                Flow Type
+                                JavaScript Code Editor
                               </label>
-                              <select
-                                value={tool.output.output_content?.flow_type || ''}
-                                onChange={(e) => handleToolChange(toolIndex, 'output.output_content.flow_type', e.target.value)}
-                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              >
-                                <option value="">Select flow type...</option>
-                                <option value="webhook">Webhook</option>
-                                <option value="api_call">API Call</option>
-                                <option value="database">Database Query</option>
-                                <option value="file_operation">File Operation</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                                Configuration
-                              </label>
-                              <textarea
-                                value={tool.output.output_content?.configuration || ''}
-                                onChange={(e) => handleToolChange(toolIndex, 'output.output_content.configuration', e.target.value)}
-                                placeholder="Enter configuration details..."
-                                rows={4}
-                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                              />
-                            </div>
-                            <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-                              <div className="flex items-center gap-2 text-sm text-neutral-600">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Custom flow functionality will be implemented in a future update
+                              <div className="border border-neutral-300 rounded-lg overflow-hidden bg-neutral-900">
+                                {/* Header */}
+                                <div className="bg-neutral-800 px-4 py-2 border-b border-neutral-600">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex gap-1">
+                                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                      <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                    </div>
+                                    <span className="text-neutral-400 text-sm font-mono ml-2">custom-flow.js</span>
+                                  </div>
+                                </div>
+                                
+                                {/* Code Editor */}
+                                <div className="relative">
+                                  {/* Top section - Parameter declarations (non-editable) */}
+                                  <div className="bg-neutral-800 px-4 py-3 border-b border-neutral-700">
+                                    <div className="flex text-sm">
+                                      <div className="text-neutral-500 font-mono mr-4 select-none">
+                                        {Object.keys(tool.parameters || {}).map((_, index) => (
+                                          <div key={index} className="leading-6">{index + 1}</div>
+                                        ))}
+                                        {Object.keys(tool.parameters || {}).length === 0 && <div className="leading-6">1</div>}
+                                        <div className="leading-6">{(Object.keys(tool.parameters || {}).length || 0) + 2}</div>
+                                      </div>
+                                      <div className="flex-1 font-mono text-neutral-300">
+                                        {Object.keys(tool.parameters || {}).length > 0 ? (
+                                          Object.keys(tool.parameters || {}).map((paramName, index) => (
+                                            <div key={paramName} className="leading-6">
+                                              <span className="text-blue-400">var</span>{' '}
+                                              <span className="text-green-400">{paramName}</span>{' '}
+                                              <span className="text-white">=</span>{' '}
+                                              <span className="text-yellow-400">{'{'}</span>
+                                              <span className="text-orange-400">parameter {index + 1}</span>
+                                              <span className="text-yellow-400">{'}'}</span>
+                                              <span className="text-white">;</span>
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <div className="leading-6 text-neutral-500">// No parameters defined</div>
+                                        )}
+                                        <div className="leading-6"></div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Middle section - User editable code */}
+                                  <div className="relative">
+                                    <textarea
+                                      value={tool.output.output_content?.configuration || '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";'}
+                                      onChange={(e) => handleToolChange(toolIndex, 'output.output_content.configuration', e.target.value)}
+                                      placeholder="// Write your JavaScript code here..."
+                                      className="w-full bg-neutral-900 text-neutral-100 font-mono text-sm leading-6 px-4 py-3 border-none resize-none focus:outline-none focus:ring-0"
+                                      rows={12}
+                                      style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        outline: 'none',
+                                        boxShadow: 'none',
+                                        paddingLeft: '35px'
+                                      }}
+                                    />
+                                    {/* Line numbers for middle section */}
+                                    <div className="absolute left-0 top-0 text-sm text-neutral-500 font-mono px-4 py-3 pointer-events-none select-none">
+                                      {Array.from({ length: (tool.output.output_content?.configuration || '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";').split('\n').length }, (_, i) => (
+                                        <div key={i} className="leading-6">{(Object.keys(tool.parameters || {}).length || 0) + 3 + i}</div>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Bottom section - Return statement (non-editable) */}
+                                  <div className="bg-neutral-800 px-4 py-3 border-t border-neutral-700">
+                                    <div className="flex text-sm">
+                                      <div className="text-neutral-500 font-mono mr-4 select-none">
+                                        <div className="leading-6">
+                                          {(Object.keys(tool.parameters || {}).length || 0) + 3 + (tool.output.output_content?.configuration || '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";').split('\n').length}
+                                        </div>
+                                      </div>
+                                      <div className="flex-1 font-mono text-neutral-300">
+                                        <div className="leading-6">
+                                          <span className="text-purple-400">return</span>{' '}
+                                          <span className="text-green-400">output</span>
+                                          <span className="text-white">;</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Info message */}
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                                <div className="flex items-start gap-2 text-sm text-blue-800">
+                                  <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <div>
+                                    <div className="font-medium mb-1">JavaScript Custom Flow (Beta)</div>
+                                    <div>Write JavaScript code to process your parameters and return a custom output. The parameters you defined above will be available as variables. Set the <code className="bg-blue-100 px-1 rounded">output</code> variable to define what this tool returns.</div>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
