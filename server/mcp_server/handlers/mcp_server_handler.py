@@ -156,7 +156,6 @@ class MCPServerHandler:
                 del self.active_handlers[session_id]
             
             # Soft delete: Update status to 'removed' instead of actually deleting
-            
             update_data = {
                 'status': 'removed',
                 'updated_at': int(time.time())
