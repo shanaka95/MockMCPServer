@@ -9,7 +9,7 @@ from ..constants import VALID_OUTPUT_TYPES
 
 class Output(BaseModel):
     """Unified output model for all output types"""
-    output_type: str = Field(..., description="Output type: text, image, or custom")
+    output_type: str = Field(..., description="Output type: text, image, custom, or custom_flow")
     output_content: Dict[str, Any] = Field(..., description="Output content based on type")
     
     @validator('output_type')
@@ -37,7 +37,7 @@ class Output(BaseModel):
                 raise ValueError('Image output must have valid s3_key')
             # s3_bucket is optional, will default if not provided
                 
-        elif output_type == 'custom':
+        elif output_type in ['custom', 'custom_flow']:
             if 'flow_type' not in v:
                 raise ValueError('Custom output must contain "flow_type" field in output_content')
             if 'configuration' not in v:

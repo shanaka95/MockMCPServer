@@ -10,7 +10,7 @@ SERVER_EXPIRY_HOURS = 24
 SERVER_EXPIRY_SECONDS = SERVER_EXPIRY_HOURS * 60 * 60
 
 # Output Types
-VALID_OUTPUT_TYPES = ['text', 'image', 'custom']
+VALID_OUTPUT_TYPES = ['text', 'image', 'custom', 'custom_flow']
 
 # Parameter Types
 PARAMETER_TYPE_MAPPING = {

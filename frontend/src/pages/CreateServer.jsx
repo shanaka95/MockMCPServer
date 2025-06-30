@@ -114,7 +114,7 @@ function CreateServer() {
             initialCode += 'var output = helloworld;\n\n'
             initialCode += '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";\n\nreturn output;'
             
-            newContent = { language: 'js', attachments: [], code: initialCode }
+            newContent = { flow_type: 'javascript', configuration: initialCode }
           }
         
         updatedTools[index] = {
@@ -331,9 +331,9 @@ function CreateServer() {
     // Update full code if this is a custom flow
     if (updatedTools[toolIndex].output.output_type === 'custom_flow') {
       const toolId = `tool_${toolIndex}`
-      const userCode = userCodes[toolId] || extractUserCode(updatedTools[toolIndex].output.output_content?.code, toolIndex)
+      const userCode = userCodes[toolId] || extractUserCode(updatedTools[toolIndex].output.output_content?.configuration, toolIndex)
       const fullCode = generateFullCode(toolIndex, userCode)
-      updatedTools[toolIndex].output.output_content.code = fullCode
+      updatedTools[toolIndex].output.output_content.configuration = fullCode
       setUserCodes(prev => ({ ...prev, [toolId]: userCode }))
     }
     
@@ -350,9 +350,9 @@ function CreateServer() {
     // Update full code if this is a custom flow
     if (updatedTools[toolIndex].output.output_type === 'custom_flow') {
       const toolId = `tool_${toolIndex}`
-      const userCode = userCodes[toolId] || extractUserCode(updatedTools[toolIndex].output.output_content?.code, toolIndex)
+      const userCode = userCodes[toolId] || extractUserCode(updatedTools[toolIndex].output.output_content?.configuration, toolIndex)
       const fullCode = generateFullCode(toolIndex, userCode)
-      updatedTools[toolIndex].output.output_content.code = fullCode
+      updatedTools[toolIndex].output.output_content.configuration = fullCode
       setUserCodes(prev => ({ ...prev, [toolId]: userCode }))
     }
     
@@ -394,9 +394,9 @@ function CreateServer() {
       // Update full code if this is a custom flow
       if (updatedTools[toolIndex].output.output_type === 'custom_flow') {
         const toolId = `tool_${toolIndex}`
-        const userCode = userCodes[toolId] || extractUserCode(updatedTools[toolIndex].output.output_content?.code, toolIndex)
+        const userCode = userCodes[toolId] || extractUserCode(updatedTools[toolIndex].output.output_content?.configuration, toolIndex)
         const fullCode = generateFullCode(toolIndex, userCode)
-        updatedTools[toolIndex].output.output_content.code = fullCode
+        updatedTools[toolIndex].output.output_content.configuration = fullCode
         setUserCodes(prev => ({ ...prev, [toolId]: userCode }))
       }
       
@@ -424,8 +424,8 @@ function CreateServer() {
     
     // If not in userCodes, extract it from the full code
     const tool = formData.tools[toolIndex]
-    if (tool?.output?.output_type === 'custom_flow' && tool.output.output_content?.code) {
-      const extracted = extractUserCode(tool.output.output_content.code, toolIndex)
+    if (tool?.output?.output_type === 'custom_flow' && tool.output.output_content?.configuration) {
+      const extracted = extractUserCode(tool.output.output_content.configuration, toolIndex)
       setUserCodes(prev => ({ ...prev, [toolId]: extracted }))
       return extracted
     }
@@ -442,7 +442,7 @@ function CreateServer() {
     
     // Generate and update full code
     const fullCode = generateFullCode(toolIndex, newUserCode)
-    handleToolChange(toolIndex, 'output.output_content.code', fullCode)
+    handleToolChange(toolIndex, 'output.output_content.configuration', fullCode)
   }
 
   const generateFullCode = (toolIndex, userCode) => {
@@ -532,9 +532,8 @@ function CreateServer() {
               output: {
                 ...cleanTool.output,
                 output_content: {
-                  language: cleanTool.output.output_content?.language || 'js',
-                  attachments: cleanTool.output.output_content?.attachments || [],
-                  code: cleanTool.output.output_content?.code || ''
+                  flow_type: 'javascript',
+                  configuration: cleanTool.output.output_content?.configuration || cleanTool.output.output_content?.code || ''
                 }
               }
             }

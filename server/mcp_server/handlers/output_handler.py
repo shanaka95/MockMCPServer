@@ -44,7 +44,7 @@ class OutputHandler:
                     return self._handle_image_output(parsed_result)
                 
                 # Check if it's a custom flow output
-                if isinstance(parsed_result, dict) and parsed_result.get('type') == 'custom_flow':
+                if isinstance(parsed_result, dict) and parsed_result.get('type') in ['custom', 'custom_flow']:
                     return self._handle_custom_flow_output(parsed_result, parameters or {})
                 
             except json.JSONDecodeError:

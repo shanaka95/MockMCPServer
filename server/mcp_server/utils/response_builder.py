@@ -14,6 +14,34 @@ class ResponseBuilder:
     """Utility class for building standardized HTTP responses"""
     
     @staticmethod
+    def _safe_json_serialize(obj: Any) -> str:
+        """
+        Safely serialize an object to JSON, handling non-serializable objects
+        
+        Args:
+            obj: Object to serialize
+            
+        Returns:
+            JSON string representation
+        """
+        def json_serializer(o):
+            """Custom JSON serializer for non-serializable objects"""
+            try:
+                # Handle exception objects
+                if isinstance(o, Exception):
+                    return str(o)
+                # Handle other complex objects by converting to string
+                return str(o)
+            except:
+                return "<non-serializable object>"
+        
+        try:
+            return json.dumps(obj, default=json_serializer)
+        except Exception:
+            # Fallback: convert entire object to string
+            return json.dumps({"data": str(obj)})
+    
+    @staticmethod
     def success(data: Any, status_code: int = HTTP_OK, include_cors: bool = False) -> Dict[str, Any]:
         """
         Build a success response
@@ -28,7 +56,7 @@ class ResponseBuilder:
         """
         response = {
             'statusCode': status_code,
-            'body': json.dumps(data),
+            'body': ResponseBuilder._safe_json_serialize(data),
             'headers': {
                 'Content-Type': CONTENT_TYPE_JSON
             }
@@ -74,7 +102,7 @@ class ResponseBuilder:
         
         response = {
             'statusCode': status_code,
-            'body': json.dumps(error_data),
+            'body': ResponseBuilder._safe_json_serialize(error_data),
             'headers': {
                 'Content-Type': CONTENT_TYPE_JSON
             }
