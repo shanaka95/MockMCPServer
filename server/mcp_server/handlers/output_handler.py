@@ -168,6 +168,8 @@ class OutputHandler:
             Result of JavaScript execution (value of 'output' variable)
         """
         try:
+            print(f"Executing JavaScript code: {js_code}")
+            print(f"Parameters: {parameters}")
             # Create variable declarations for parameters
             param_declarations = self._create_parameter_variables(parameters)
             
@@ -191,10 +193,11 @@ class OutputHandler:
                 }}
             }})();
             """
+            print(f"Execution code: {execution_code}")
             
             # Execute the JavaScript code using DukPy
             result = dukpy.evaljs(execution_code)
-            
+            print(f"Result: {result}")
             if result is not None:
                 return result
             else:

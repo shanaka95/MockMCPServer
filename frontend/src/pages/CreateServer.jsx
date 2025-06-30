@@ -492,6 +492,14 @@ function CreateServer() {
   }
 
   const handleOutputTextChange = (toolIndex, value, shouldPrettify = false) => {
+    // Check character limit for text output (5000 characters)
+    if (value.length > 5000) {
+      setFieldError(`tools.${toolIndex}.output`, `Text output cannot exceed 5000 characters (currently ${value.length})`)
+      return // Don't update if over limit
+    } else {
+      clearFieldError(`tools.${toolIndex}.output`)
+    }
+
     let finalValue = value
     
     if (shouldPrettify) {
@@ -503,6 +511,18 @@ function CreateServer() {
 
   const handleImageUpload = async (toolIndex, file) => {
     if (!file) return
+
+    // Check file size (2MB limit)
+    const maxSize = 2 * 1024 * 1024 // 2MB in bytes
+    if (file.size > maxSize) {
+      setError(`Image file size must be less than 2MB. Current file is ${(file.size / (1024 * 1024)).toFixed(1)}MB.`)
+      // Reset the file input
+      const fileInput = document.getElementById(`image-upload-${toolIndex}`)
+      if (fileInput) {
+        fileInput.value = ''
+      }
+      return
+    }
 
     // Add this tool to uploading set
     setUploadingImages(prev => new Set([...prev, toolIndex]))
@@ -777,6 +797,14 @@ function CreateServer() {
   }
 
   const updateUserCode = (toolIndex, newUserCode) => {
+    // Check character limit for custom flow code (5000 characters)
+    if (newUserCode.length > 5000) {
+      setFieldError(`tools.${toolIndex}.output`, `Custom flow code cannot exceed 5000 characters (currently ${newUserCode.length})`)
+      return // Don't update if over limit
+    } else {
+      clearFieldError(`tools.${toolIndex}.output`)
+    }
+
     const toolId = `tool_${toolIndex}`
     setUserCodes(prev => ({ ...prev, [toolId]: newUserCode }))
     
@@ -1437,6 +1465,19 @@ function CreateServer() {
                               }`}
                               required
                             />
+                            
+                            {/* Character counter for text output */}
+                            <div className="flex justify-between items-center mt-1">
+                              <div className="text-xs text-neutral-500">
+                                {(tool.output.output_content.text || '').length} / 5000 characters
+                              </div>
+                              {(tool.output.output_content.text || '').length > 4500 && (
+                                <div className="text-xs text-orange-600 font-medium">
+                                  {5000 - (tool.output.output_content.text || '').length} characters remaining
+                                </div>
+                              )}
+                            </div>
+
                             {validationErrors.tools[toolIndex]?.output && (
                               <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1489,7 +1530,7 @@ function CreateServer() {
                                       <p className="mb-2 text-sm text-neutral-500">
                                         <span className="font-semibold">Click to upload</span> or drag and drop
                                       </p>
-                                      <p className="text-xs text-neutral-500">PNG, JPG or GIF (MAX. 10MB)</p>
+                                      <p className="text-xs text-neutral-500">PNG, JPG or GIF (MAX. 2MB)</p>
                                     </div>
                                     <input 
                                       id={`image-upload-${toolIndex}`}
@@ -1685,6 +1726,18 @@ function CreateServer() {
                                     </div>
                                   </div>
                                 </div>
+                              </div>
+                              
+                              {/* Character counter for custom flow */}
+                              <div className="flex justify-between items-center mt-2 px-2">
+                                <div className="text-xs text-neutral-400">
+                                  {getUserCode(toolIndex).length} / 5000 characters
+                                </div>
+                                {getUserCode(toolIndex).length > 4500 && (
+                                  <div className="text-xs text-orange-400 font-medium">
+                                    {5000 - getUserCode(toolIndex).length} characters remaining
+                                  </div>
+                                )}
                               </div>
                               
                               {/* Info message */}
