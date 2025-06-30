@@ -2,16 +2,45 @@
 
 > Create mock MCP servers in under 30 seconds with minimal configuration.
 
+[![Website](https://img.shields.io/badge/🌐_Website-mockmcp.com-blue?style=for-the-badge)](https://www.mockmcp.com)
+[![Create Server](https://img.shields.io/badge/🚀_Create_Server-Start_Now-green?style=for-the-badge)](https://www.mockmcp.com/create-server)
+[![View Servers](https://img.shields.io/badge/📊_My_Servers-Dashboard-orange?style=for-the-badge)](https://www.mockmcp.com/servers)
+[![Demo](https://img.shields.io/badge/🎮_Demo-Try_It_Live-purple?style=for-the-badge)](https://www.mockmcp.com/demo)
+
 ![License](https://img.shields.io/badge/license-NonCommercial-blue.svg)
 ![AWS](https://img.shields.io/badge/AWS-Serverless-orange.svg)
 ![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
 ![React](https://img.shields.io/badge/React-18-blue.svg)
+
+---
+
+<div align="center">
+
+### 🎯 **Try MockMCP Now - No Setup Required!**
+
+**Skip the complexity. Start building agentic AI workflows in seconds.**
+
+**[🌐 Visit MockMCP.com](https://www.mockmcp.com)** • **[🚀 Create Your First Server](https://www.mockmcp.com/create-server)** • **[🎮 View Live Demo](https://www.mockmcp.com/demo)**
+
+</div>
+
+---
 
 ## 🚀 Overview
 
 As agentic AI grows in popularity, agent capabilities have become a cornerstone of modern AI development. In today's landscape, MCP (Model Context Protocol) servers provide essential capabilities to AI agents. However, when developing agent workflows, using actual MCP servers can be problematic since agents might cause unintended side effects during testing and development.
 
 The practical solution is to create mock MCP servers for development purposes. Unfortunately, building these mock servers from scratch is time-consuming and technically challenging. **MockMCP.com** solves this problem by enabling developers to create fully functional mock MCP servers instantly, streamlining the development process and allowing teams to focus on building great agentic experiences.
+
+## 🔗 Quick Access
+
+| Action | Link | Description |
+|--------|------|-------------|
+| 🏠 **Main Website** | [mockmcp.com](https://www.mockmcp.com) | Landing page and platform overview |
+| 🚀 **Create Server** | [Create New Server](https://www.mockmcp.com/create-server) | Build your first mock MCP server |
+| 📊 **Server Dashboard** | [My Servers](https://www.mockmcp.com/servers) | Manage and monitor your servers |
+| 🎮 **Live Demo** | [Try Demo](https://www.mockmcp.com/demo) | Test the platform with examples |
+| 📖 **GitHub Repository** | [Source Code](https://github.com/shanaka95/MockMCPServer) | View and contribute to the code |
 
 ### Key Features
 
@@ -27,7 +56,7 @@ The practical solution is to create mock MCP servers for development purposes. U
 
 MockMCP is a fully AWS-hosted serverless solution built around two core Lambda functions. The first handles user authorization and authentication, while the second manages the complete MCP server lifecycle - from creation to execution.
 
-**Authentication Flow**: Users authenticate through AWS Cognito, gaining access to create MCP servers via our Amplify-hosted frontend. All requests - both from users and MCP clients - flow through API Gateway, where our Authorizer Lambda validates and authorizes every interaction before forwarding approved requests to the Server Lambda.
+**Authentication Flow**: Users authenticate through AWS Cognito, gaining access to create MCP servers via our Amplify-hosted frontend. All requests - both from users and MCP clients - flow through API Gateway, where our Authorizer Lambda validates and authorizes every interaction before forwarding approved requests to the Server Lambda and generates a policy for the API Gateway.
 
 **Domain & Storage**: The entire system operates under the MockMCP.com domain with DNS managed by Route 53. User-uploaded images and MCP server outputs are securely stored in S3 buckets, while the complete state of every MCP server is tracked in a DynamoDB table that the Server Lambda connects to as needed.
 
@@ -222,6 +251,23 @@ We encourage pull requests of all kinds. Please ensure your changes align with t
 ## 📄 License
 
 This project is licensed under a Non-Commercial License with attribution required. Please see the license file for full details.
+
+## 🎯 Get Started Today
+
+Ready to streamline your agentic AI development? Join thousands of developers who are already using MockMCP to accelerate their workflows.
+
+**🚀 [Start Creating Servers](https://www.mockmcp.com/create-server)** | **📊 [View Dashboard](https://www.mockmcp.com/servers)** | **🎮 [Try Demo](https://www.mockmcp.com/demo)**
+
+---
+
+## 🌐 Links & Resources
+
+- **🏠 Website**: [https://www.mockmcp.com](https://www.mockmcp.com)
+- **🔧 Create Server**: [https://www.mockmcp.com/create-server](https://www.mockmcp.com/create-server)
+- **📊 Server Dashboard**: [https://www.mockmcp.com/servers](https://www.mockmcp.com/servers)
+- **🎮 Live Demo**: [https://www.mockmcp.com/demo](https://www.mockmcp.com/demo)
+- **💻 GitHub**: [https://github.com/shanaka95/MockMCPServer](https://github.com/shanaka95/MockMCPServer)
+- **📚 MCP Inspector**: [https://github.com/modelcontextprotocol/inspector](https://github.com/modelcontextprotocol/inspector)
 
 ---
 
