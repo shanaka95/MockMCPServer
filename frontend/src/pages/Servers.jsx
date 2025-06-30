@@ -14,6 +14,7 @@ function Servers() {
   const [deleteConfirmation, setDeleteConfirmation] = useState({ show: false, server: null })
   const [deleting, setDeleting] = useState(new Set())
   const [expandedTools, setExpandedTools] = useState(new Set())
+  const [hoveredTool, setHoveredTool] = useState(null)
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -217,6 +218,96 @@ function Servers() {
         {config.dot && <div className={`w-2 h-2 ${config.dotClass} rounded-full pulse-dot`}></div>}
         {config.text}
       </span>
+    )
+  }
+
+  const showToolTooltip = (tool, event) => {
+    const rect = event.target.getBoundingClientRect()
+    setHoveredTool({
+      tool,
+      position: {
+        x: rect.left + rect.width / 2,
+        y: rect.top - 8
+      }
+    })
+  }
+
+  const hideToolTooltip = () => {
+    setHoveredTool(null)
+  }
+
+  const ToolTooltip = ({ tool, position }) => {
+    if (!tool) return null
+
+    const hasParameters = tool.parameters && Object.keys(tool.parameters).length > 0
+
+    return (
+      <div 
+        className="fixed z-50 bg-white rounded-lg shadow-lg border border-neutral-200 p-4 max-w-sm pointer-events-none"
+        style={{
+          left: position.x,
+          top: position.y,
+          transform: 'translateX(-50%) translateY(-100%)'
+        }}
+      >
+        {/* Arrow */}
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-neutral-200"></div>
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 translate-y-[-1px] w-0 h-0 border-l-[7px] border-r-[7px] border-t-[7px] border-l-transparent border-r-transparent border-t-white"></div>
+        
+        {/* Content */}
+        <div className="space-y-3">
+          {/* Tool Name */}
+          <div>
+            <h3 className="font-semibold text-neutral-900 text-sm">{tool.name}</h3>
+            <p className="text-xs text-neutral-600 mt-1">{tool.description}</p>
+          </div>
+
+          {/* Output Type */}
+          <div>
+            <span className="text-xs font-medium text-neutral-500">Output Type:</span>
+            <span className="ml-2 inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+              {tool.output?.output_type === 'text' && (
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              )}
+              {tool.output?.output_type === 'image' && (
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              )}
+              {tool.output?.output_type === 'custom_flow' && (
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                </svg>
+              )}
+              {tool.output?.output_type || 'text'}
+            </span>
+          </div>
+
+          {/* Parameters */}
+          {hasParameters && (
+            <div>
+              <span className="text-xs font-medium text-neutral-500 block mb-2">Parameters:</span>
+              <div className="space-y-2">
+                {Object.entries(tool.parameters).map(([paramName, paramConfig]) => (
+                  <div key={paramName} className="bg-neutral-50 rounded p-2 text-xs">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-neutral-700">{paramName}</span>
+                      <span className="bg-neutral-200 text-neutral-600 px-1 rounded text-[10px]">
+                        {paramConfig.type}
+                      </span>
+                    </div>
+                    {paramConfig.description && (
+                      <p className="text-neutral-600">{paramConfig.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     )
   }
 
@@ -529,7 +620,12 @@ function Servers() {
                             <p className="text-xs text-neutral-500 mb-2">Available Tools:</p>
                             <div className="flex flex-wrap gap-1 justify-center">
                               {(expandedTools.has(server.session_id) ? server.tools : server.tools.slice(0, 3)).map((tool, index) => (
-                                <span key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium border border-blue-200">
+                                <span 
+                                  key={index} 
+                                  className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium border border-blue-200 cursor-help transition-colors hover:bg-blue-200"
+                                  onMouseEnter={(e) => showToolTooltip(tool, e)}
+                                  onMouseLeave={hideToolTooltip}
+                                >
                                   {tool.name}
                                 </span>
                               ))}
@@ -633,6 +729,14 @@ function Servers() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Tool Tooltip */}
+      {hoveredTool && (
+        <ToolTooltip 
+          tool={hoveredTool.tool} 
+          position={hoveredTool.position} 
+        />
       )}
     </main>
   )

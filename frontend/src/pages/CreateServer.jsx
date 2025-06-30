@@ -1630,10 +1630,17 @@ function CreateServer() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || uploadingImages.size > 0}
+                  disabled={isSubmitting || uploadingImages.size > 0 || success}
                   className="btn-success px-6 py-3 rounded-lg font-medium inline-flex items-center gap-2"
                 >
-                  {isSubmitting ? (
+                  {success ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Created! Redirecting...
+                    </>
+                  ) : isSubmitting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                       Creating...
