@@ -54,6 +54,9 @@ function CreateServer() {
     tools: []
   })
 
+  // Add JS validation state
+  const [jsValidationResults, setJsValidationResults] = useState({}) // { toolIndex: { isValidating, result, error } }
+
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -240,6 +243,124 @@ function CreateServer() {
       
       return newErrors
     })
+  }
+
+  // JS Code validation functions
+  const generateRandomValue = (type) => {
+    switch (type) {
+      case 'string':
+        const strings = ['Hello World', 'Test String', 'Sample Text', 'Mock Data', 'Example Value']
+        return strings[Math.floor(Math.random() * strings.length)]
+      case 'number':
+        return Math.floor(Math.random() * 100) + 1
+      case 'boolean':
+        return Math.random() > 0.5
+      case 'array':
+        const arrayTypes = [
+          [1, 2, 3, 4, 5],
+          ['apple', 'banana', 'orange'],
+          [true, false, true],
+          ['item1', 'item2', 'item3']
+        ]
+        return arrayTypes[Math.floor(Math.random() * arrayTypes.length)]
+      case 'object':
+        const objects = [
+          { name: 'John', age: 30 },
+          { id: 123, title: 'Sample Object' },
+          { active: true, count: 42 },
+          { type: 'test', value: 'example' }
+        ]
+        return objects[Math.floor(Math.random() * objects.length)]
+      default:
+        return 'default_value'
+    }
+  }
+
+  const validateJavaScriptCode = async (toolIndex) => {
+    const tool = formData.tools[toolIndex]
+    const userCode = getUserCode(toolIndex)
+    
+    if (!userCode || userCode.trim() === '') {
+      setJsValidationResults(prev => ({
+        ...prev,
+        [toolIndex]: {
+          isValidating: false,
+          error: 'No JavaScript code to validate',
+          result: null
+        }
+      }))
+      return
+    }
+
+    setJsValidationResults(prev => ({
+      ...prev,
+      [toolIndex]: {
+        isValidating: true,
+        result: null,
+        error: null
+      }
+    }))
+
+    try {
+      // Generate random values for parameters
+      const parameterValues = {}
+      const parameterDescriptions = []
+      
+      if (tool.parameters) {
+        Object.entries(tool.parameters).forEach(([paramName, paramConfig]) => {
+          const randomValue = generateRandomValue(paramConfig.type)
+          parameterValues[paramName] = randomValue
+          parameterDescriptions.push(`${paramName} (${paramConfig.type}): ${JSON.stringify(randomValue)}`)
+        })
+      }
+
+      // Create the full executable code
+      let executableCode = ''
+      
+      // Add parameter assignments
+      Object.entries(parameterValues).forEach(([paramName, value]) => {
+        executableCode += `var ${paramName} = ${JSON.stringify(value)};\n`
+      })
+      
+      // Add the default output variable
+      executableCode += 'var output = "default";\n\n'
+      
+      // Add user code
+      executableCode += userCode + '\n\n'
+      
+      // Add return statement
+      executableCode += 'return output;'
+
+      // Execute the code safely
+      const executeCode = new Function(executableCode)
+      const result = executeCode()
+
+      // Format the result
+      const formattedResult = {
+        assignedValues: parameterDescriptions.length > 0 ? parameterDescriptions : ['No parameters defined'],
+        output: result,
+        executedCode: userCode
+      }
+
+      setJsValidationResults(prev => ({
+        ...prev,
+        [toolIndex]: {
+          isValidating: false,
+          result: formattedResult,
+          error: null
+        }
+      }))
+
+    } catch (error) {
+      setJsValidationResults(prev => ({
+        ...prev,
+        [toolIndex]: {
+          isValidating: false,
+          result: null,
+          error: error.message
+        }
+      }))
+    }
   }
 
   const handleChange = (e) => {
@@ -1578,6 +1699,85 @@ function CreateServer() {
                                   </div>
                                 </div>
                               </div>
+
+                              {/* Validate JS Code Button */}
+                              <div className="mt-4">
+                                <button
+                                  type="button"
+                                  onClick={() => validateJavaScriptCode(toolIndex)}
+                                  disabled={jsValidationResults[toolIndex]?.isValidating}
+                                  className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {jsValidationResults[toolIndex]?.isValidating ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                      Validating...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      </svg>
+                                      Validate JS Code
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+
+                              {/* Validation Results */}
+                              {jsValidationResults[toolIndex] && (
+                                <div className="mt-4">
+                                  {jsValidationResults[toolIndex].error && (
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                      <div className="flex items-start gap-2">
+                                        <svg className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <div>
+                                          <h4 className="text-sm font-medium text-red-800 mb-1">Validation Error</h4>
+                                          <p className="text-sm text-red-700">{jsValidationResults[toolIndex].error}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {jsValidationResults[toolIndex].result && (
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                      <div className="flex items-start gap-2">
+                                        <svg className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <div className="flex-1">
+                                          <h4 className="text-sm font-medium text-green-800 mb-2">Validation Successful</h4>
+                                          
+                                          <div className="space-y-3">
+                                            <div>
+                                              <h5 className="text-xs font-medium text-green-700 mb-1">Assigned Random Values:</h5>
+                                              <div className="bg-green-100 rounded p-2">
+                                                {jsValidationResults[toolIndex].result.assignedValues.map((value, idx) => (
+                                                  <div key={idx} className="text-xs font-mono text-green-800">{value}</div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                            
+                                            <div>
+                                              <h5 className="text-xs font-medium text-green-700 mb-1">Output Result:</h5>
+                                              <div className="bg-green-100 rounded p-2">
+                                                <div className="text-xs font-mono text-green-800">
+                                                  {typeof jsValidationResults[toolIndex].result.output === 'object' 
+                                                    ? JSON.stringify(jsValidationResults[toolIndex].result.output, null, 2)
+                                                    : String(jsValidationResults[toolIndex].result.output)
+                                                  }
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                               {validationErrors.tools[toolIndex]?.output && (
                                 <p className="mt-3 text-sm text-red-600 flex items-center gap-1">
                                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
