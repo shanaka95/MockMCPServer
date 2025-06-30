@@ -76,11 +76,11 @@ class ToolFactory:
                 "s3_key": output_content.get('s3_key', ''),
                 "s3_bucket": output_content.get('s3_bucket', '')
             })
-        elif output_type == 'custom':
+        elif output_type in ['custom', 'custom_flow']:
             # Return raw custom flow information as JSON for MCPLambdaHandler output processing
             return json.dumps({
                 "type": "custom_flow",
-                "flow_type": output_content.get('flow_type', ''),
+                "flow_type": output_content.get('flow_type', 'javascript'),
                 "configuration": output_content.get('configuration', '')
             })
         else:

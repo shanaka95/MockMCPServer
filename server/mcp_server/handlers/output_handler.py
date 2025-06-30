@@ -154,7 +154,7 @@ class OutputHandler:
             
         except Exception as e:
             logger.error(f"Error handling custom flow output: {e}")
-            return [TextContent(text=f"Error executing custom flow: {str(e)}").model_dump()]
+            return [TextContent(text=f"Error executing custom flow. Please check your code and try again.").model_dump()]
     
     def _execute_javascript(self, js_code: str, parameters: Dict[str, Any]) -> Any:
         """

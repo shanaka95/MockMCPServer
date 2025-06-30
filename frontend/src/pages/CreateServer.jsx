@@ -414,7 +414,7 @@ function CreateServer() {
             } else {
               initialCode = '// No parameters defined\n'
             }
-            initialCode += 'var output = helloworld;\n\n'
+            initialCode += 'var output = "Hello World";\n\n'
             initialCode += '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";\n\nreturn output;'
             
             newContent = { flow_type: 'javascript', configuration: initialCode }
@@ -826,7 +826,7 @@ function CreateServer() {
     } else {
       topCode = '// No parameters defined\n'
     }
-    topCode += 'var output = helloworld;\n\n'
+    topCode += 'var output = "Hello World";\n\n'
     
     // Bottom section - return statement
     const bottomCode = '\nreturn output;'
