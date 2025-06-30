@@ -16,6 +16,52 @@ function Demo() {
     token: "mcp_m2m_vR1nI9aiaqRCv8Lj6OT0XdPgmvDtccQzpv8Kdc2k6oY_96e802af942bdd84"
   }
 
+  const demoTools = [
+    {
+      name: "Greet_me",
+      description: "Greet the user",
+      parameters: {
+        name: {
+          type: "string",
+          description: "Your Name"
+        }
+      },
+      output: {
+        type: "custom_flow",
+        flow_type: "javascript"
+      }
+    },
+    {
+      name: "generate_car", 
+      description: "Generates an image of a car",
+      parameters: {},
+      output: {
+        type: "image",
+        s3_bucket: "sam-app-mockmcp-images",
+        s3_key: "tool-images/GT Azure Dynamic Desktop.jpg"
+      }
+    },
+    {
+      name: "Generate_bike",
+      description: "Generates an image of a bike", 
+      parameters: {},
+      output: {
+        type: "image",
+        s3_bucket: "sam-app-mockmcp-images",
+        s3_key: "tool-images/bike-909690_1280.jpg"
+      }
+    },
+    {
+      name: "mockmcp_status",
+      description: "Get the server status of MockMCP",
+      parameters: {},
+      output: {
+        type: "custom_flow",
+        flow_type: "javascript"
+      }
+    }
+  ]
+
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -271,6 +317,73 @@ function Demo() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Available Tools */}
+        <section className="mb-12 fade-in" aria-labelledby="available-tools">
+          <div className="text-center mb-8">
+            <h2 id="available-tools" className="text-2xl font-bold text-neutral-900 mb-4">Available Tools</h2>
+            <p className="text-neutral-600 max-w-2xl mx-auto">
+              This demo server provides {demoTools.length} tools that your MCP client can call. 
+              Ask your LLM to use these tools to interact with the server.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {demoTools.map((tool, index) => (
+              <div key={index} className="feature-card p-4 rounded-xl border border-neutral-200 hover:border-neutral-300 transition-colors">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    {tool.output.type === 'image' ? (
+                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-neutral-800 truncate">{tool.name}</h3>
+                    <p className="text-xs text-neutral-600 mt-1 line-clamp-2">{tool.description}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-neutral-500">Output:</span>
+                    <span className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded text-xs">
+                      {tool.output.type === 'image' ? '🖼️' : '⚙️'} {tool.output.type}
+                    </span>
+                  </div>
+                  
+                  {Object.keys(tool.parameters).length > 0 && (
+                    <div>
+                      <span className="text-neutral-500">Parameters:</span>
+                      <div className="mt-1 space-y-1">
+                        {Object.entries(tool.parameters).map(([paramName, paramInfo]) => (
+                          <div key={paramName} className="bg-neutral-50 px-2 py-1 rounded text-xs">
+                            <span className="font-medium text-neutral-700">{paramName}</span>
+                            <span className="text-neutral-500"> ({paramInfo.type})</span>
+                            {paramInfo.description && (
+                              <div className="text-neutral-600 text-xs mt-0.5">{paramInfo.description}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {Object.keys(tool.parameters).length === 0 && (
+                    <div className="text-neutral-500">
+                      No parameters required
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
