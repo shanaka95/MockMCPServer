@@ -14,15 +14,12 @@ function CreateServer() {
     tools: [
       {
         name: 'HelloWorld',
-        description: 'Provides the server status of mockmcp.com',
+        description: 'A simple and useful tool.',
         output: {
           output_type: 'text',
           output_content: {
             text: JSON.stringify({
-              "status": "online",
-              "message": "Hi, mockmcp.com is online and running normally.",
-              "timestamp": new Date().toISOString(),
-              "server": "MockMCP"
+              "message": "Hi, This tool works well!",
             }, null, 2)
           }
         },
@@ -155,15 +152,23 @@ function CreateServer() {
     return ''
   }
 
-  const validateJsonOutput = (text) => {
+  const validateTextOutput = (text) => {
     if (!text || text.trim() === '') {
       return 'Output content is required'
     }
+    // Accept both JSON and plain text - no validation error for format
+    return ''
+  }
+
+  const isValidJson = (text) => {
+    if (!text || text.trim() === '') {
+      return false
+    }
     try {
       JSON.parse(text)
-      return ''
+      return true
     } catch (error) {
-      return 'Invalid JSON format'
+      return false
     }
   }
 
@@ -445,7 +450,7 @@ function CreateServer() {
         
         // Validate JSON output
         if (contentField === 'text' && updatedTools[index].output.output_type === 'text') {
-          const error = validateJsonOutput(value)
+          const error = validateTextOutput(value)
           if (error) {
             setFieldError(`tools.${index}.output`, error)
           } else {
@@ -900,7 +905,7 @@ function CreateServer() {
 
       // Validate output based on type
       if (tool.output.output_type === 'text') {
-        const outputError = validateJsonOutput(tool.output.output_content.text)
+        const outputError = validateTextOutput(tool.output.output_content.text)
         if (outputError) {
           newErrors.tools[index].output = outputError
           hasErrors = true
@@ -1393,7 +1398,7 @@ function CreateServer() {
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                               </svg>
-                              Text/JSON
+                              Text & JSON
                             </div>
                           </button>
                           <button
@@ -1444,7 +1449,7 @@ function CreateServer() {
                               onBlur={(e) => {
                                 // Auto-prettify JSON on blur if it's valid JSON but not formatted
                                 const value = e.target.value.trim()
-                                if (value && value.startsWith('{') || value.startsWith('[')) {
+                                if (value && (value.startsWith('{') || value.startsWith('['))) {
                                   try {
                                     const parsed = JSON.parse(value)
                                     const prettified = JSON.stringify(parsed, null, 2)
@@ -1452,11 +1457,11 @@ function CreateServer() {
                                       handleOutputTextChange(toolIndex, prettified)
                                     }
                                   } catch {
-                                    // Ignore if not valid JSON
+                                    // Ignore if not valid JSON - plain text is also allowed
                                   }
                                 }
                               }}
-                              placeholder="What will this tool return when called? Can be plain text or JSON..."
+                              placeholder="Enter the response this tool will return - can be plain text, JSON, or any other format..."
                               className={`w-full h-[180px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm resize-none ${
                                 validationErrors.tools[toolIndex]?.output 
                                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
@@ -1486,8 +1491,8 @@ function CreateServer() {
                               </p>
                             )}
                             {tool.output.output_content.text && (() => {
-                              try {
-                                JSON.parse(tool.output.output_content.text)
+                              const text = tool.output.output_content.text.trim()
+                              if (isValidJson(text)) {
                                 return (
                                   <div className="absolute top-2 right-2">
                                     <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded">
@@ -1498,12 +1503,22 @@ function CreateServer() {
                                     </span>
                                   </div>
                                 )
-                              } catch {
-                                return null
+                              } else if (text) {
+                                return (
+                                  <div className="absolute top-2 right-2">
+                                    <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">
+                                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                      </svg>
+                                      Plain Text
+                                    </span>
+                                  </div>
+                                )
                               }
+                              return null
                             })()}
                             <p className="text-xs text-neutral-500 mt-1">
-                              💡 Tip: Paste JSON here and click "Prettify JSON" to format it automatically
+                              💡 Tip: Enter plain text or JSON. For JSON, click "Prettify JSON" to format automatically
                             </p>
                           </>
                         )}
