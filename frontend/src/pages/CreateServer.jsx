@@ -323,7 +323,7 @@ function CreateServer() {
       })
       
       // Add the default output variable
-      executableCode += 'var output = "default";\n\n'
+      executableCode += 'var output = "";\n\n'
       
       // Add user code (exactly as written, no modifications)
       executableCode += userCode
@@ -1638,7 +1638,7 @@ function CreateServer() {
                                 <div className="relative">
                                   {/* Top section - Parameter declarations (non-editable) */}
                                   <div className="bg-neutral-800 px-4 py-3 border-b border-neutral-700">
-                                    <div className="flex text-sm">
+                                    <div className="flex text-sm " >
                                       <div className="text-neutral-500 font-mono mr-4 select-none">
                                         {Object.keys(tool.parameters || {}).map((_, index) => (
                                           <div key={index} className="leading-6">{index + 1}</div>
@@ -1672,7 +1672,7 @@ function CreateServer() {
                                   </div>
 
                                   {/* Middle section - User editable code */}
-                                  <div className="relative">
+                                  <div className="relative overflow-hidden">
                                     <textarea
                                       value={getUserCode(toolIndex)}
                                       onChange={(e) => updateUserCode(toolIndex, e.target.value)}
