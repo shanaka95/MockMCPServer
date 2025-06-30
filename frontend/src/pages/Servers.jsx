@@ -250,6 +250,14 @@ function Servers() {
         text: 'Expired', 
         dot: false, 
         description: 'Server has expired and needs renewal' 
+      },
+      removed: { 
+        bgClass: 'bg-gray-100', 
+        textClass: 'text-gray-600', 
+        dotClass: 'bg-gray-500',
+        text: 'Removed', 
+        dot: false, 
+        description: 'Server has been deleted' 
       }
     }
     
@@ -539,20 +547,7 @@ function Servers() {
                 </div>
               </div>
 
-              {/* Results count */}
-              <div className="mt-4 text-sm text-neutral-600">
-                {(() => {
-                  const filteredServers = getFilteredAndSortedServers()
-                  const total = servers.length
-                  const shown = filteredServers.length
-                  
-                  if (searchQuery.trim()) {
-                    return `Showing ${shown} of ${total} server${total !== 1 ? 's' : ''}`
-                  } else {
-                    return `${total} server${total !== 1 ? 's' : ''} total`
-                  }
-                })()}
-              </div>
+
             </div>
 
             {/* Servers */}

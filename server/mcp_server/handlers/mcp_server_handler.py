@@ -1,7 +1,7 @@
 """
 MCP Server Handler for managing MCP server creation and lifecycle
 """
-
+import time
 from typing import Dict, Any
 from pydantic import ValidationError
 
@@ -131,7 +131,7 @@ class MCPServerHandler:
     
     def delete_server(self, session_id: str, user_id: str) -> Dict[str, Any]:
         """
-        Delete an MCP server (future enhancement)
+        Delete an MCP server (soft delete by marking as removed)
         
         Args:
             session_id: The session ID to delete
@@ -155,8 +155,14 @@ class MCPServerHandler:
             if session_id in self.active_handlers:
                 del self.active_handlers[session_id]
             
-            # Delete from database
-            success = self.db_service.delete_session(session_id)
+            # Soft delete: Update status to 'removed' instead of actually deleting
+            
+            update_data = {
+                'status': 'removed',
+                'updated_at': int(time.time())
+            }
+            
+            success = self.db_service.update_session(session_id, update_data)
             
             if success:
                 return ResponseBuilder.success({

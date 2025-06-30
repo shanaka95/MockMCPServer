@@ -103,12 +103,16 @@ class ServerService:
             active_sessions: Set of currently active session IDs
             
         Returns:
-            List of processed server response data
+            List of processed server response data (excludes removed servers)
         """
         server_responses = []
         
         for session in sessions:
             try:
+                # Skip servers that have been soft deleted (status = 'removed')
+                if session.get('status') == 'removed':
+                    continue
+                
                 # Check if this server is currently active (loaded in memory)
                 session_id = session.get('session_id')
                 if session_id in active_sessions:
