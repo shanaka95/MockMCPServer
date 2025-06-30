@@ -243,6 +243,15 @@ Please follow the established architecture and file structure when contributing.
 
 We encourage pull requests of all kinds. Please ensure your changes align with the project's goals and maintain the existing code quality standards.
 
+## 🙏 Attribution
+
+This project builds upon the excellent work of the open source community. We gratefully acknowledge the following projects:
+
+- **[AWS Labs MCP Lambda Handler](https://github.com/awslabs/mcp/tree/main/src/mcp-lambda-handler)** - Core MCP lambda handler implementation and protocol support
+- **[Lambda MCP Server](https://github.com/mikegc-aws/Lambda-MCP-Server)** - Reference implementation and architecture patterns for MCP servers on AWS Lambda
+
+These projects provided essential foundation and inspiration for MockMCP's serverless architecture and MCP protocol implementation.
+
 ## 📝 Changelog
 
 **Version 0.2**: Enhanced functionality with custom JavaScript flows
