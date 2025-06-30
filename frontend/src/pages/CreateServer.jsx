@@ -47,6 +47,13 @@ function CreateServer() {
   const [editingParameterName, setEditingParameterName] = useState('')
   const [userCodes, setUserCodes] = useState({}) // Store user codes separately to avoid extraction on every render
 
+  // Add validation errors state
+  const [validationErrors, setValidationErrors] = useState({
+    name: '',
+    description: '',
+    tools: []
+  })
+
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -79,11 +86,186 @@ function CreateServer() {
     }
   }, [isAuthenticated, loading, navigate])
 
+  // Validation functions
+  const validateServerName = (name) => {
+    if (!name || name.trim() === '') {
+      return 'Server name is required'
+    }
+    if (name.length < 3) {
+      return 'Server name must be at least 3 characters long'
+    }
+    if (name.length > 50) {
+      return 'Server name cannot exceed 50 characters'
+    }
+    if (!/^[a-zA-Z0-9\s\-_]+$/.test(name)) {
+      return 'Server name can only contain letters, numbers, spaces, hyphens, and underscores'
+    }
+    return ''
+  }
+
+  const validateServerDescription = (description) => {
+    if (!description || description.trim() === '') {
+      return 'Server description is required'
+    }
+    if (description.length < 10) {
+      return 'Description must be at least 10 characters long'
+    }
+    if (description.length > 500) {
+      return 'Description cannot exceed 500 characters'
+    }
+    return ''
+  }
+
+  const validateToolName = (name, toolIndex, tools) => {
+    if (!name || name.trim() === '') {
+      return 'Tool name is required'
+    }
+    if (name.length < 2) {
+      return 'Tool name must be at least 2 characters long'
+    }
+    if (name.length > 30) {
+      return 'Tool name cannot exceed 30 characters'
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(name)) {
+      return 'Tool name can only contain letters, numbers, and underscores'
+    }
+    // Check for duplicate tool names
+    const duplicateIndex = tools.findIndex((tool, index) => 
+      index !== toolIndex && tool.name.toLowerCase() === name.toLowerCase()
+    )
+    if (duplicateIndex !== -1) {
+      return 'Tool name must be unique'
+    }
+    return ''
+  }
+
+  const validateToolDescription = (description) => {
+    if (!description || description.trim() === '') {
+      return 'Tool description is required'
+    }
+    if (description.length < 5) {
+      return 'Tool description must be at least 5 characters long'
+    }
+    if (description.length > 200) {
+      return 'Tool description cannot exceed 200 characters'
+    }
+    return ''
+  }
+
+  const validateJsonOutput = (text) => {
+    if (!text || text.trim() === '') {
+      return 'Output content is required'
+    }
+    try {
+      JSON.parse(text)
+      return ''
+    } catch (error) {
+      return 'Invalid JSON format'
+    }
+  }
+
+  const validateParameterName = (paramName, existingParams = {}) => {
+    if (!paramName || paramName.trim() === '') {
+      return 'Parameter name is required'
+    }
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(paramName)) {
+      return 'Parameter name must start with a letter or underscore and contain only letters, numbers, and underscores'
+    }
+    if (paramName.length > 20) {
+      return 'Parameter name cannot exceed 20 characters'
+    }
+    if (existingParams[paramName]) {
+      return 'Parameter name must be unique'
+    }
+    return ''
+  }
+
+  const clearFieldError = (fieldPath) => {
+    setValidationErrors(prev => {
+      const newErrors = { ...prev }
+      const parts = fieldPath.split('.')
+      
+      if (parts.length === 1) {
+        newErrors[parts[0]] = ''
+      } else if (parts.length === 3 && parts[0] === 'tools') {
+        const toolIndex = parseInt(parts[1])
+        const field = parts[2]
+        if (!newErrors.tools[toolIndex]) {
+          newErrors.tools[toolIndex] = {}
+        }
+        newErrors.tools[toolIndex][field] = ''
+      } else if (parts.length === 5 && parts[0] === 'tools' && parts[2] === 'parameters') {
+        // Handle tools.{toolIndex}.parameters.{paramName}
+        const toolIndex = parseInt(parts[1])
+        const paramName = parts[3]
+        if (!newErrors.tools[toolIndex]) {
+          newErrors.tools[toolIndex] = {}
+        }
+        if (!newErrors.tools[toolIndex].parameters) {
+          newErrors.tools[toolIndex].parameters = {}
+        }
+        newErrors.tools[toolIndex].parameters[paramName] = ''
+      }
+      
+      return newErrors
+    })
+  }
+
+  const setFieldError = (fieldPath, errorMessage) => {
+    setValidationErrors(prev => {
+      const newErrors = { ...prev }
+      const parts = fieldPath.split('.')
+      
+      if (parts.length === 1) {
+        newErrors[parts[0]] = errorMessage
+      } else if (parts.length === 3 && parts[0] === 'tools') {
+        const toolIndex = parseInt(parts[1])
+        const field = parts[2]
+        if (!newErrors.tools[toolIndex]) {
+          newErrors.tools[toolIndex] = {}
+        }
+        newErrors.tools[toolIndex][field] = errorMessage
+      } else if (parts.length === 5 && parts[0] === 'tools' && parts[2] === 'parameters') {
+        // Handle tools.{toolIndex}.parameters.{paramName}
+        const toolIndex = parseInt(parts[1])
+        const paramName = parts[3]
+        if (!newErrors.tools[toolIndex]) {
+          newErrors.tools[toolIndex] = {}
+        }
+        if (!newErrors.tools[toolIndex].parameters) {
+          newErrors.tools[toolIndex].parameters = {}
+        }
+        newErrors.tools[toolIndex].parameters[paramName] = errorMessage
+      }
+      
+      return newErrors
+    })
+  }
+
   const handleChange = (e) => {
+    const { name, value } = e.target
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     })
+    
+    // Real-time validation
+    if (name === 'name') {
+      const error = validateServerName(value)
+      if (error) {
+        setFieldError('name', error)
+      } else {
+        clearFieldError('name')
+      }
+    } else if (name === 'description') {
+      const error = validateServerDescription(value)
+      if (error) {
+        setFieldError('description', error)
+      } else {
+        clearFieldError('description')
+      }
+    }
+    
     if (error) setError('')
   }
 
@@ -137,12 +319,39 @@ function CreateServer() {
             }
           }
         }
+        
+        // Validate JSON output
+        if (contentField === 'text' && updatedTools[index].output.output_type === 'text') {
+          const error = validateJsonOutput(value)
+          if (error) {
+            setFieldError(`tools.${index}.output`, error)
+          } else {
+            clearFieldError(`tools.${index}.output`)
+          }
+        }
       }
     } else {
       // Handle other fields normally
       updatedTools[index] = {
         ...updatedTools[index],
         [field]: value
+      }
+      
+      // Real-time validation for tool fields
+      if (field === 'name') {
+        const error = validateToolName(value, index, updatedTools)
+        if (error) {
+          setFieldError(`tools.${index}.name`, error)
+        } else {
+          clearFieldError(`tools.${index}.name`)
+        }
+      } else if (field === 'description') {
+        const error = validateToolDescription(value)
+        if (error) {
+          setFieldError(`tools.${index}.description`, error)
+        } else {
+          clearFieldError(`tools.${index}.description`)
+        }
       }
     }
     
@@ -281,6 +490,16 @@ function CreateServer() {
       ...updatedTools[toolIndex].parameters[paramName],
       [field]: value
     }
+    
+    // Real-time validation for parameter description
+    if (field === 'description') {
+      if (!value || value.trim() === '') {
+        setFieldError(`tools.${toolIndex}.parameters.${paramName}`, 'Parameter description is required')
+      } else {
+        clearFieldError(`tools.${toolIndex}.parameters.${paramName}`)
+      }
+    }
+    
     setFormData({
       ...formData,
       tools: updatedTools
@@ -494,16 +713,86 @@ function CreateServer() {
     return userLines.join('\n')
   }
 
+  const validateForm = () => {
+    let hasErrors = false
+    const newErrors = {
+      name: '',
+      description: '',
+      tools: []
+    }
+
+    // Validate server info
+    const nameError = validateServerName(formData.name)
+    if (nameError) {
+      newErrors.name = nameError
+      hasErrors = true
+    }
+
+    const descriptionError = validateServerDescription(formData.description)
+    if (descriptionError) {
+      newErrors.description = descriptionError
+      hasErrors = true
+    }
+
+    // Validate tools
+    formData.tools.forEach((tool, index) => {
+      newErrors.tools[index] = {}
+      
+      const toolNameError = validateToolName(tool.name, index, formData.tools)
+      if (toolNameError) {
+        newErrors.tools[index].name = toolNameError
+        hasErrors = true
+      }
+
+      const toolDescError = validateToolDescription(tool.description)
+      if (toolDescError) {
+        newErrors.tools[index].description = toolDescError
+        hasErrors = true
+      }
+
+      // Validate output based on type
+      if (tool.output.output_type === 'text') {
+        const outputError = validateJsonOutput(tool.output.output_content.text)
+        if (outputError) {
+          newErrors.tools[index].output = outputError
+          hasErrors = true
+        }
+      } else if (tool.output.output_type === 'image') {
+        if (!tool.output.output_content.s3_key || !tool.output.output_content.s3_bucket) {
+          newErrors.tools[index].output = 'Please upload an image'
+          hasErrors = true
+        }
+      } else if (tool.output.output_type === 'custom_flow') {
+        if (!tool.output.output_content.configuration || tool.output.output_content.configuration.trim() === '') {
+          newErrors.tools[index].output = 'Custom flow configuration is required'
+          hasErrors = true
+        }
+      }
+
+      // Validate parameters
+      if (tool.parameters) {
+        Object.entries(tool.parameters).forEach(([paramName, paramConfig]) => {
+          if (!paramConfig.description || paramConfig.description.trim() === '') {
+            if (!newErrors.tools[index].parameters) {
+              newErrors.tools[index].parameters = {}
+            }
+            newErrors.tools[index].parameters[paramName] = 'Parameter description is required'
+            hasErrors = true
+          }
+        })
+      }
+    })
+
+    setValidationErrors(newErrors)
+    return !hasErrors
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    if (!formData.name || !formData.description) {
-      setError('Please fill in all required fields')
-      return
-    }
-
-    if (formData.tools.some(tool => !tool.name || !tool.description)) {
-      setError('Please fill in all tool information')
+    // Validate the entire form
+    if (!validateForm()) {
+      setError('Please fix the validation errors above')
       return
     }
 
@@ -641,9 +930,21 @@ function CreateServer() {
                       value={formData.name}
                       onChange={handleChange}
                       placeholder="e.g., Demo MCP Server"
-                      className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        validationErrors.name 
+                          ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                          : 'border-neutral-300'
+                      }`}
                       required
                     />
+                    {validationErrors.name && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {validationErrors.name}
+                      </p>
+                    )}
                   </div>
                   
                   <div>
@@ -656,9 +957,21 @@ function CreateServer() {
                       onChange={handleChange}
                       placeholder="Describe what your MCP server does..."
                       rows={3}
-                      className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        validationErrors.description 
+                          ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                          : 'border-neutral-300'
+                      }`}
                       required
                     />
+                    {validationErrors.description && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {validationErrors.description}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -713,9 +1026,21 @@ function CreateServer() {
                           value={tool.name}
                           onChange={(e) => handleToolChange(toolIndex, 'name', e.target.value)}
                           placeholder="e.g., HelloWorld"
-                          className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                            validationErrors.tools[toolIndex]?.name 
+                              ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                              : 'border-neutral-300'
+                          }`}
                           required
                         />
+                        {validationErrors.tools[toolIndex]?.name && (
+                          <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {validationErrors.tools[toolIndex].name}
+                          </p>
+                        )}
                       </div>
                       
                       <div>
@@ -727,9 +1052,21 @@ function CreateServer() {
                           value={tool.description}
                           onChange={(e) => handleToolChange(toolIndex, 'description', e.target.value)}
                           placeholder="What does this tool do?"
-                          className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                            validationErrors.tools[toolIndex]?.description 
+                              ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                              : 'border-neutral-300'
+                          }`}
                           required
                         />
+                        {validationErrors.tools[toolIndex]?.description && (
+                          <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {validationErrors.tools[toolIndex].description}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -852,8 +1189,20 @@ function CreateServer() {
                                 value={paramConfig.description}
                                 onChange={(e) => handleParameterChange(toolIndex, paramName, 'description', e.target.value)}
                                 placeholder="Parameter description"
-                                className="w-full px-3 py-2 text-sm border border-neutral-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className={`w-full px-3 py-2 text-sm border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                  validationErrors.tools[toolIndex]?.parameters?.[paramName]
+                                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                                    : 'border-neutral-300'
+                                }`}
                               />
+                              {validationErrors.tools[toolIndex]?.parameters?.[paramName] && (
+                                <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  {validationErrors.tools[toolIndex].parameters[paramName]}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -960,9 +1309,21 @@ function CreateServer() {
                                 }
                               }}
                               placeholder="What will this tool return when called? Can be plain text or JSON..."
-                              className="w-full h-[180px] px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm resize-none"
+                              className={`w-full h-[180px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm resize-none ${
+                                validationErrors.tools[toolIndex]?.output 
+                                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                                  : 'border-neutral-300'
+                              }`}
                               required
                             />
+                            {validationErrors.tools[toolIndex]?.output && (
+                              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {validationErrors.tools[toolIndex].output}
+                              </p>
+                            )}
                             {tool.output.output_content.text && (() => {
                               try {
                                 JSON.parse(tool.output.output_content.text)
@@ -1082,6 +1443,14 @@ function CreateServer() {
                                 </div>
                               )}
                             </div>
+                            {validationErrors.tools[toolIndex]?.output && (
+                              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {validationErrors.tools[toolIndex].output}
+                              </p>
+                            )}
                           </div>
                         )}
 
@@ -1209,6 +1578,14 @@ function CreateServer() {
                                   </div>
                                 </div>
                               </div>
+                              {validationErrors.tools[toolIndex]?.output && (
+                                <p className="mt-3 text-sm text-red-600 flex items-center gap-1">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  {validationErrors.tools[toolIndex].output}
+                                </p>
+                              )}
                             </div>
                           </div>
                         )}

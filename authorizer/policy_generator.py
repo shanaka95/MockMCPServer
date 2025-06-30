@@ -25,10 +25,10 @@ def create_m2m_auth_policy(principal_id, method_arn, context=None):
     return policy
 
 def create_cognito_auth_policy(principal_id, method_arn, context=None):
-    """Create the authorization policy response for Cognito tokens - allows access to /servers and /upload-image endpoints"""
-    # Extract base ARN and create resource patterns for /servers and /upload-image
+    """Create the authorization policy response for Cognito tokens - allows access to /servers and /images endpoints, but NOT /servers/*/mcp"""
+    # Extract base ARN and create specific resource patterns
     # From: arn:aws:execute-api:region:account:api/stage/method/path
-    # To:   arn:aws:execute-api:region:account:api/stage/*/servers and arn:aws:execute-api:region:account:api/stage/*/upload-image
+    # We need to be specific to avoid allowing access to /servers/{session_id}/mcp endpoints
     arn_parts = method_arn.split('/')
     base_arn = '/'.join(arn_parts[:2])  # Gets "arn:aws:execute-api:region:account:api/stage"
     
@@ -40,8 +40,10 @@ def create_cognito_auth_policy(principal_id, method_arn, context=None):
                 'Action': 'execute-api:Invoke',
                 'Effect': 'Allow',
                 'Resource': [
-                    f"{base_arn}/*/servers",
-                    f"{base_arn}/*/images"
+                    f"{base_arn}/GET/servers",
+                    f"{base_arn}/POST/servers",
+                    f"{base_arn}/DELETE/servers/*",
+                    f"{base_arn}/POST/images"
                 ]
             }]
         }

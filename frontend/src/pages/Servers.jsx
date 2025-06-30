@@ -11,6 +11,9 @@ function Servers() {
   const [error, setError] = useState(null)
   const [copiedStates, setCopiedStates] = useState({})
   const [tokenVisibility, setTokenVisibility] = useState({})
+  const [deleteConfirmation, setDeleteConfirmation] = useState({ show: false, server: null })
+  const [deleting, setDeleting] = useState(new Set())
+  const [expandedTools, setExpandedTools] = useState(new Set())
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -50,6 +53,62 @@ function Servers() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const deleteServer = async (server) => {
+    try {
+      setDeleting(prev => new Set(prev).add(server.session_id))
+      const token = await getAccessToken()
+      
+      const response = await fetch(`${apiConfig.mcpApiEndpoint}/servers/${server.session_id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `Failed to delete server (${response.status})`)
+      }
+
+      // Remove server from local state
+      setServers(prev => prev.filter(s => s.session_id !== server.session_id))
+      
+      // Close confirmation dialog
+      setDeleteConfirmation({ show: false, server: null })
+      
+    } catch (err) {
+      console.error('Error deleting server:', err)
+      setError(err.message)
+    } finally {
+      setDeleting(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(server.session_id)
+        return newSet
+      })
+    }
+  }
+
+  const confirmDelete = (server) => {
+    setDeleteConfirmation({ show: true, server })
+  }
+
+  const cancelDelete = () => {
+    setDeleteConfirmation({ show: false, server: null })
+  }
+
+  const toggleToolsExpansion = (sessionId) => {
+    setExpandedTools(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(sessionId)) {
+        newSet.delete(sessionId)
+      } else {
+        newSet.add(sessionId)
+      }
+      return newSet
+    })
   }
 
   const copyToClipboard = async (text, serverId, type) => {
@@ -422,6 +481,26 @@ function Servers() {
                           </>
                         )}
                       </button>
+                      
+                      <button 
+                        onClick={() => confirmDelete(server)}
+                        disabled={deleting.has(server.session_id)}
+                        className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-semibold inline-flex items-center justify-center gap-2 transition-colors"
+                      >
+                        {deleting.has(server.session_id) ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Deleting...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete Server
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
 
@@ -449,15 +528,21 @@ function Servers() {
                           <div className="mt-3 pt-3 border-t border-neutral-200">
                             <p className="text-xs text-neutral-500 mb-2">Available Tools:</p>
                             <div className="flex flex-wrap gap-1 justify-center">
-                              {server.tools.slice(0, 3).map((tool, index) => (
-                                <span key={index} className="text-xs bg-white/60 text-neutral-700 px-2 py-1 rounded">
+                              {(expandedTools.has(server.session_id) ? server.tools : server.tools.slice(0, 3)).map((tool, index) => (
+                                <span key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium border border-blue-200">
                                   {tool.name}
                                 </span>
                               ))}
                               {server.tools.length > 3 && (
-                                <span className="text-xs bg-white/60 text-neutral-700 px-2 py-1 rounded">
-                                  +{server.tools.length - 3} more
-                                </span>
+                                <button
+                                  onClick={() => toggleToolsExpansion(server.session_id)}
+                                  className="text-xs bg-neutral-100 hover:bg-neutral-200 text-neutral-700 hover:text-neutral-900 px-2 py-1 rounded font-medium border border-neutral-300 transition-colors cursor-pointer"
+                                >
+                                  {expandedTools.has(server.session_id) 
+                                    ? 'Show less' 
+                                    : `+${server.tools.length - 3} more`
+                                  }
+                                </button>
                               )}
                             </div>
                           </div>
@@ -501,6 +586,54 @@ function Servers() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmation.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900">Delete Server</h3>
+                <p className="text-sm text-neutral-600">This action cannot be undone</p>
+              </div>
+            </div>
+            
+            <p className="text-neutral-700 mb-6">
+              Are you sure you want to delete "<strong>{deleteConfirmation.server?.name}</strong>"? 
+              This will permanently remove the server and all its configurations.
+            </p>
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={cancelDelete}
+                disabled={deleting.has(deleteConfirmation.server?.session_id)}
+                className="btn-outline px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteServer(deleteConfirmation.server)}
+                disabled={deleting.has(deleteConfirmation.server?.session_id)}
+                className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium inline-flex items-center gap-2"
+              >
+                {deleting.has(deleteConfirmation.server?.session_id) ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Server'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

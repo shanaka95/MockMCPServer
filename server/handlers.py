@@ -83,7 +83,13 @@ def handle_server_deletion(event: Dict[str, Any], context: Any, auth_context: Di
     """
     try:
         user_id = auth_context['user_id']
-        session_id = auth_context['session_id']
+        
+        # For Cognito tokens, session_id comes from URL path (extracted_session_id)
+        session_id = auth_context.get('extracted_session_id')
+        
+        if not session_id:
+            return error_response(HttpStatus.BAD_REQUEST, "Session ID is required")
+        
         log_request(event, auth_context)
         
         print(f"Deleting server for user: {user_id}, session: {session_id}")
