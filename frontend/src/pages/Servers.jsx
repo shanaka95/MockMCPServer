@@ -15,6 +15,11 @@ function Servers() {
   const [deleting, setDeleting] = useState(new Set())
   const [expandedTools, setExpandedTools] = useState(new Set())
   const [hoveredTool, setHoveredTool] = useState(null)
+  
+  // Search and sort state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState('name') // 'name' or 'date'
+  const [sortOrder, setSortOrder] = useState('asc') // 'asc' or 'desc'
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -170,6 +175,46 @@ function Servers() {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  // Filter and sort servers
+  const getFilteredAndSortedServers = () => {
+    let filtered = servers
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      filtered = servers.filter(server => 
+        server.name.toLowerCase().includes(query) ||
+        server.description.toLowerCase().includes(query)
+      )
+    }
+
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      let comparison = 0
+      
+      if (sortBy === 'name') {
+        comparison = a.name.localeCompare(b.name)
+      } else if (sortBy === 'date') {
+        comparison = a.created_at - b.created_at
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison
+    })
+
+    return sorted
+  }
+
+  const handleSortChange = (newSortBy) => {
+    if (sortBy === newSortBy) {
+      // Toggle order if same field
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      // Change field and reset to ascending
+      setSortBy(newSortBy)
+      setSortOrder('asc')
+    }
   }
 
   const getStatusBadge = (status) => {
@@ -420,7 +465,123 @@ function Servers() {
         ) : (
           /* Server List */
           <div className="space-y-6 fade-in">
-            {servers.map((server) => (
+            {/* Search and Sort Controls */}
+            <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm">
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                
+                {/* Search Bar */}
+                <div className="flex-1 max-w-md">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search servers by name or description..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="block w-full pl-10 pr-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        <svg className="h-4 w-4 text-neutral-400 hover:text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sort Controls */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-neutral-700">Sort by:</span>
+                  <div className="flex items-center border border-neutral-300 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => handleSortChange('name')}
+                      className={`px-3 py-2 text-sm font-medium transition-colors ${
+                        sortBy === 'name'
+                          ? 'bg-blue-100 text-blue-700 border-r border-neutral-300'
+                          : 'bg-white text-neutral-700 hover:bg-neutral-50 border-r border-neutral-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1">
+                        Name
+                        {sortBy === 'name' && (
+                          <svg className={`w-4 h-4 ${sortOrder === 'asc' ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleSortChange('date')}
+                      className={`px-3 py-2 text-sm font-medium transition-colors ${
+                        sortBy === 'date'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-white text-neutral-700 hover:bg-neutral-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1">
+                        Date
+                        {sortBy === 'date' && (
+                          <svg className={`w-4 h-4 ${sortOrder === 'asc' ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Results count */}
+              <div className="mt-4 text-sm text-neutral-600">
+                {(() => {
+                  const filteredServers = getFilteredAndSortedServers()
+                  const total = servers.length
+                  const shown = filteredServers.length
+                  
+                  if (searchQuery.trim()) {
+                    return `Showing ${shown} of ${total} server${total !== 1 ? 's' : ''}`
+                  } else {
+                    return `${total} server${total !== 1 ? 's' : ''} total`
+                  }
+                })()}
+              </div>
+            </div>
+
+            {/* Servers */}
+            {(() => {
+              const filteredServers = getFilteredAndSortedServers()
+              
+              if (filteredServers.length === 0 && searchQuery.trim()) {
+                return (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-neutral-900 mb-2">No servers found</h3>
+                    <p className="text-neutral-600 mb-4">
+                      No servers match your search for "<span className="font-medium">{searchQuery}</span>"
+                    </p>
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="btn-outline px-4 py-2 rounded-lg font-medium text-sm"
+                    >
+                      Clear search
+                    </button>
+                  </div>
+                )
+              }
+              
+              return filteredServers.map((server) => (
               <div key={server.session_id} className="hero-card rounded-2xl p-8">
                 <div className="grid lg:grid-cols-3 gap-8 items-center">
                   
@@ -648,7 +809,8 @@ function Servers() {
                   </div>
                 </div>
               </div>
-            ))}
+              ))
+            })()}
           </div>
         )}
 

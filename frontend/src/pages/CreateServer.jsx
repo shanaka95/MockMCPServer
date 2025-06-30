@@ -325,14 +325,16 @@ function CreateServer() {
       // Add the default output variable
       executableCode += 'var output = "default";\n\n'
       
-      // Add user code
-      executableCode += userCode + '\n\n'
-      
-      // Add return statement
-      executableCode += 'return output;'
+      // Add user code (exactly as written, no modifications)
+      executableCode += userCode
 
-      // Execute the code safely
-      const executeCode = new Function(executableCode)
+      // Execute the code safely and capture the output variable
+      const executeCode = new Function(`
+        ${executableCode}
+        
+        // Return the output variable without modifying user code
+        return (typeof output !== 'undefined') ? output : null;
+      `)
       const result = executeCode()
 
       // Format the result
@@ -415,7 +417,7 @@ function CreateServer() {
               initialCode = '// No parameters defined\n'
             }
             initialCode += 'var output = "Hello World";\n\n'
-            initialCode += '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";\n\nreturn output;'
+            initialCode += '// Write your JavaScript code here\n// Use the parameters defined above\n// Set the output variable to return your result\n\nvar output = "Hello World";\n\n'
             
             newContent = { flow_type: 'javascript', configuration: initialCode }
           }
@@ -828,10 +830,7 @@ function CreateServer() {
     }
     topCode += 'var output = "Hello World";\n\n'
     
-    // Bottom section - return statement
-    const bottomCode = '\nreturn output;'
-    
-    return topCode + userCode + bottomCode
+    return topCode + userCode 
   }
 
   const extractUserCode = (fullCode, toolIndex) => {
